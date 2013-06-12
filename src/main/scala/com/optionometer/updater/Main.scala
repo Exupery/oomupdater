@@ -1,5 +1,6 @@
 package main.scala.com.optionometer.updater
 
+import scala.collection.immutable.HashSet
 import org.slf4j.{Logger, LoggerFactory}
 
 object Main extends App {
@@ -8,7 +9,8 @@ object Main extends App {
 
   override def main(args: Array[String]): Unit = {
     Log.info("*** Optionometer Quote Updater Started ***")
-    QuoteImporter.begin
+    val symbols = HashSet("IBM")	//TODO: replace
+    QuoteImporter.begin(symbols)
   }
 
 }
