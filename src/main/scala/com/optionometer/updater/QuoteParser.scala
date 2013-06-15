@@ -1,5 +1,6 @@
 package com.optionometer.updater
 
+import java.text.{ParseException, SimpleDateFormat}
 import scala.collection.mutable.{HashMap, Map}
 import org.slf4j.{Logger, LoggerFactory}
 
@@ -17,12 +18,16 @@ object QuoteParser extends Fields {
   }
   
   private def parseLevelOne(msg: String) {
-    println(msg)	//DELME
-    mapFields(msg).foreach { case (k, v) =>
-      k match {
-        case SYMBOL => println("Symbol is: "+v)
-        case _ => None
-      }
+    val fieldMap = mapFields(msg)
+    if (fieldMap.contains(LAST)) {
+      println(msg)	//DELME
+      //TODO: send sym, last, and timestamp to db
+      val sym = fieldMap.get(SYMBOL).get
+      val last = fieldMap.get(LAST).get
+      val timestamp = getUNIXTime(fieldMap.get(TIMESTAMP).getOrElse(""), fieldMap.get(DATE).getOrElse(""))
+      println(sym+"\t"+sym.getClass)				//DELME
+      println(last+"\t"+last.getClass)				//DELME
+      println(timestamp+"\t"+timestamp.getClass)	//DELME
     }
   }
   
@@ -30,8 +35,19 @@ object QuoteParser extends Fields {
     
   }
   
-  private def mapFields(msg: String): Map[Int, Any] = {
-    val fields = new HashMap[Int, Any]
+  private def getUNIXTime(time: String, date: String): Long = {
+    val dateString: String = time +"-"+ date
+    val dateFormat = "HH:mm:ss-MM/dd/yy"
+    val df = new SimpleDateFormat(dateFormat)
+    try {
+      return df.parse(dateString).getTime / 1000    
+    } catch {
+      case e: ParseException => return System.currentTimeMillis / 1000
+    }
+  }
+  
+  private def mapFields(msg: String): Map[Int, String] = {
+    val fields = new HashMap[Int, String]
     val start = if (msg.contains("|")) msg.indexOf("|") + 1 else 0
     msg.substring(start).split(";").foreach { fld =>
       val pair = fld.split("=")
