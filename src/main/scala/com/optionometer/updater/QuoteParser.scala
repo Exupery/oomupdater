@@ -20,14 +20,13 @@ object QuoteParser extends Fields {
   private def parseLevelOne(msg: String) {
     val fieldMap = mapFields(msg)
     if (fieldMap.contains(LAST)) {
-      println(msg)	//DELME
-      //TODO: send sym, last, and timestamp to db
-      val sym = fieldMap.get(SYMBOL).get
-      val last = fieldMap.get(LAST).get
+      val sym = fieldMap.get(SYMBOL)
+      val last = BigDecimal(fieldMap.get(LAST).getOrElse("0"))
       val timestamp = getUNIXTime(fieldMap.get(TIMESTAMP).getOrElse(""), fieldMap.get(DATE).getOrElse(""))
-      println(sym+"\t"+sym.getClass)				//DELME
-      println(last+"\t"+last.getClass)				//DELME
-      println(timestamp+"\t"+timestamp.getClass)	//DELME
+      if (sym.isDefined) {
+        //TODO: send sym, last, and timestamp to DB
+        println(sym.get+"\t"+last+"\t\t"+timestamp)	//DELME
+      }
     }
   }
   
