@@ -1,4 +1,4 @@
-package main.scala.com.optionometer.updater
+package com.optionometer.updater
 
 import scala.collection.immutable.HashSet
 import org.slf4j.{Logger, LoggerFactory}

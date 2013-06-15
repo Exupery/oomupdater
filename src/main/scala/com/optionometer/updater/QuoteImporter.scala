@@ -1,4 +1,4 @@
-package main.scala.com.optionometer.updater
+package com.optionometer.updater
 
 import java.io._
 import java.math.BigInteger
@@ -16,7 +16,6 @@ object QuoteImporter {
   private val port: Int = sys.env("FIX_PORT").toInt
   
   private lazy val socket = new Socket(host, port)
-//  private lazy val socket = new Socket("127.0.0.1", 1811)		//DELME
   private lazy val out = new OutputStreamWriter(socket.getOutputStream)
   
   private lazy val Log: Logger = LoggerFactory.getLogger(this.getClass)
@@ -30,10 +29,9 @@ object QuoteImporter {
     logIn
     symbols.foreach(sym => subscribe(sym))
     while (socket.isConnected) {
-      Source.fromInputStream(socket.getInputStream).getLines.foreach(f=>println(f))
+      Source.fromInputStream(socket.getInputStream).getLines.foreach(line => QuoteParser.parse(line))
     }
     out.close
-    socket.close
     Log.info("Connection Closed!")
   }
   
