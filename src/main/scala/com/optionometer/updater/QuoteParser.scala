@@ -11,7 +11,7 @@ object QuoteParser extends Fields {
 //    println(msg)	//DELME
     msg match {
       case m if msg.startsWith("G") => log.info("Successfully logged into quote server '{}'", mapFields(m).get(QUOTE_SERVER).getOrElse(""))    	
-      case m if msg.startsWith("D") => log.info("Login denied: {}", mapFields(m).get(LOGIN_REASON).getOrElse(""))
+      case m if msg.startsWith("D") => log.info("Login denied: {}", mapFields(m).get(LOGIN_REASON).getOrElse("Reason unknown"))
 //      case m if msg.startsWith("1") => println("LOGGED IN")
       case _ => None 
     }
@@ -19,7 +19,6 @@ object QuoteParser extends Fields {
   
   private def mapFields(msg: String): Map[Int, Any] = {
     val fields = new HashMap[Int, Any]
-    println(msg)	//DELME
     val start = if (msg.contains("|")) msg.indexOf("|") + 1 else 0
     msg.substring(start).split(";").foreach { fld =>
       val pair = fld.split("=")
