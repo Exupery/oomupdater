@@ -18,6 +18,12 @@ object QuoteParser extends Fields {
   
   private def parseLevelOne(msg: String) {
     println(msg)	//DELME
+    mapFields(msg).foreach { case (k, v) =>
+      k match {
+        case SYMBOL => println("Symbol is: "+v)
+        case _ => None
+      }
+    }
   }
   
   private def parseOptionChain(msg: String) {
