@@ -18,25 +18,25 @@ object QuoteImporter {
   private lazy val socket = new Socket(host, port)
   private lazy val out = new OutputStreamWriter(socket.getOutputStream)
   
-  private lazy val Log: Logger = LoggerFactory.getLogger(this.getClass)
+  private lazy val log: Logger = LoggerFactory.getLogger(this.getClass)
   
   def begin {
     begin(new HashSet[String])
   }
   
   def begin(symbols: Set[String]) {
-    Log.info("Updating Quotes...")
+    log.info("Updating Quotes...")
     logIn
     symbols.foreach(sym => subscribe(sym))
     while (socket.isConnected) {
       Source.fromInputStream(socket.getInputStream).getLines.foreach(line => QuoteParser.parse(line))
     }
     out.close
-    Log.info("Connection Closed!")
+    log.info("Connection Closed!")
   }
   
   private def logIn {
-    Log.info("Logging into FIX connection...")
+    log.info("Logging in...")
     sendMessage("L|100=" + username + ";133=" + sha2(password) + "\n")
   }
   
