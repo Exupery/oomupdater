@@ -40,11 +40,12 @@ object QuoteParser extends Fields {
       if (sym.isDefined) {
 //        val ask = if (fieldMap.get(ASK).isDefined) BigDecimal(fieldMap.get(ASK).get) else None
 //        val bid = BigDecimal(fieldMap.get(BID))
-        val fields = getOptionFieldMap(fieldMap)
+//        val fields = getOptionFieldMap(fieldMap)
         val timestamp = getUNIXTime(fieldMap.get(TIMESTAMP).getOrElse(""), fieldMap.get(DATE).getOrElse(""))
-        val option = OptionInfo(sym.get, timestamp, fields)
-        //TODO: send to DB
-        println(option.toString)	//DELME
+//        val option = OptionInfo(sym.get, timestamp, fieldMap)
+//        
+//        //TODO: send to DB
+//        println(option.toString+"\t"+option.underlier)	//DELME
       }
     }
   }
@@ -75,8 +76,8 @@ object QuoteParser extends Fields {
   private def mapFields(msg: String): Map[Int, String] = {
     val fields = new HashMap[Int, String]
     val start = if (msg.contains("|")) msg.indexOf("|") + 1 else 0
-    msg.substring(start).split(";").foreach { fld =>
-      val pair = fld.split("=")
+    msg.substring(start).split(";").foreach { field =>
+      val pair = field.split("=")
       if (pair.length == 2) {
       	fields.put(toInt(pair(0)).getOrElse(0), pair(1))
       }
@@ -94,7 +95,27 @@ object QuoteParser extends Fields {
 
 }
 
-case class OptionInfo(sym: String, timestamp: Long, fields: Map[Int, String]) {}
+case class zOptionInfo(sym: String, timestamp: Long) {
+  
+  var bid: Option[BigDecimal] = None
+  var ask: Option[BigDecimal] = None
+  var strike: Option[BigDecimal] = None
+  var expMonth: Option[Int] = None
+  var expYear: Option[Int] = None
+  var volume: Option[Long] = None
+  var openInterest: Option[Int] = None
+  var underlier: Option[String] = None
+  var isCall: Option[Boolean] = None
+  
+  def setFields(fields: Map[Int, String]) {
+    fields.foreach { case(k, v) =>
+//      println(k+"\t"+v)	//DELME    
+    }
+    
+    underlier = Some("ABC")
+  }  
+  
+}
 
 trait Fields {
 
