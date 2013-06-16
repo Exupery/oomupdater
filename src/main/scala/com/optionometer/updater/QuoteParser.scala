@@ -13,6 +13,7 @@ object QuoteParser extends Fields {
       case m if msg.startsWith("G") => log.info("Successfully logged into quote server '{}'", mapFields(m).get(QUOTE_SERVER).getOrElse(""))    	
       case m if msg.startsWith("D") => log.info("Login denied: {}", mapFields(m).get(LOGIN_REASON).getOrElse("Reason unknown"))
       case m if msg.startsWith("1") => parseLevelOne(m)
+      case m if msg.startsWith("4") => parseOptionChain(m)
       case _ => None 
     }
   }
@@ -21,17 +22,39 @@ object QuoteParser extends Fields {
     val fieldMap = mapFields(msg)
     if (fieldMap.contains(LAST)) {
       val sym = fieldMap.get(SYMBOL)
-      val last = BigDecimal(fieldMap.get(LAST).getOrElse("0"))
-      val timestamp = getUNIXTime(fieldMap.get(TIMESTAMP).getOrElse(""), fieldMap.get(DATE).getOrElse(""))
       if (sym.isDefined) {
+        val last = BigDecimal(fieldMap.get(LAST).getOrElse("0"))
+        val timestamp = getUNIXTime(fieldMap.get(TIMESTAMP).getOrElse(""), fieldMap.get(DATE).getOrElse(""))
         //TODO: send sym, last, and timestamp to DB
-        println(sym.get+"\t"+last+"\t\t"+timestamp)	//DELME
+//        println(sym.get+"\t"+last+"\t\t"+timestamp)	//DELME
       }
     }
   }
   
   private def parseOptionChain(msg: String) {
-    
+//    println(msg)	//DELME
+    val fieldMap = mapFields(msg)
+    if (fieldMap.contains(ASK) || fieldMap.contains(BID)) {
+//      println(msg)	//DELME
+      val sym = fieldMap.get(SYMBOL)
+      if (sym.isDefined) {
+//        val ask = if (fieldMap.get(ASK).isDefined) BigDecimal(fieldMap.get(ASK).get) else None
+//        val bid = BigDecimal(fieldMap.get(BID))
+        val fields = getOptionFieldMap(fieldMap)
+        val timestamp = getUNIXTime(fieldMap.get(TIMESTAMP).getOrElse(""), fieldMap.get(DATE).getOrElse(""))
+        val option = OptionContract(sym.get, timestamp, fields)
+        //TODO: send to DB
+        println(option.toString)	//DELME
+      }
+    }
+  }
+  
+  private def getOptionFieldMap(all: Map[Int, String]): Map[Int, String] = {
+    val fields = new HashMap[Int, String]
+    all.foreach { case(k, v) =>
+      println(k+"\t"+v)	//DELME
+    }
+    return fields
   }
   
   private def getUNIXTime(time: String, date: String): Long = {
@@ -66,6 +89,8 @@ object QuoteParser extends Fields {
   }
 
 }
+
+case class OptionContract(sym: String, timestamp: Long, fields: Map[Int, String]) {}
 
 trait Fields {
 

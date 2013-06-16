@@ -57,12 +57,12 @@ object QuoteImporter {
   
   def subscribe(sym: String) {
     sendMessage("S|1003=" + sym.toUpperCase + ";2000=20000\n")		//LEVEL 1
-//    sendMessage("S|1003=" + sym.toUpperCase + ";2000=20004\n")		//OPTION CHAIN
+    sendMessage("S|1003=" + sym.toUpperCase + ";2000=20004\n")		//OPTION CHAIN
   }
   
   def unSubscribe(sym: String) {
     sendMessage("U|1003=" + sym.toUpperCase + ";2000=20000\n")		//LEVEL 1
-//    sendMessage("U|1003=" + sym.toUpperCase + ";2000=20004\n")		//OPTION CHAIN
+    sendMessage("U|1003=" + sym.toUpperCase + ";2000=20004\n")		//OPTION CHAIN
   }  
   
 }
