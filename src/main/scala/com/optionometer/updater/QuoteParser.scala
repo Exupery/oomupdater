@@ -42,7 +42,7 @@ object QuoteParser extends Fields {
 //        val bid = BigDecimal(fieldMap.get(BID))
         val fields = getOptionFieldMap(fieldMap)
         val timestamp = getUNIXTime(fieldMap.get(TIMESTAMP).getOrElse(""), fieldMap.get(DATE).getOrElse(""))
-        val option = OptionContract(sym.get, timestamp, fields)
+        val option = OptionInfo(sym.get, timestamp, fields)
         //TODO: send to DB
         println(option.toString)	//DELME
       }
@@ -51,8 +51,12 @@ object QuoteParser extends Fields {
   
   private def getOptionFieldMap(all: Map[Int, String]): Map[Int, String] = {
     val fields = new HashMap[Int, String]
+    val fieldsToKeep: List[Int] = List(BID, ASK, VOLUME, UNDERLIER, STRIKE_PRICE, EXP_MONTH, EXP_YEAR, OPEN_INTEREST, PUT_CALL)
     all.foreach { case(k, v) =>
-      println(k+"\t"+v)	//DELME
+      if (fieldsToKeep.contains(k)) {
+//    	  println(k+"\t"+v)	//DELME
+    	  fields.put(k, v)
+      }
     }
     return fields
   }
@@ -90,7 +94,7 @@ object QuoteParser extends Fields {
 
 }
 
-case class OptionContract(sym: String, timestamp: Long, fields: Map[Int, String]) {}
+case class OptionInfo(sym: String, timestamp: Long, fields: Map[Int, String]) {}
 
 trait Fields {
 
