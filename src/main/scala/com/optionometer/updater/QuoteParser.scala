@@ -4,7 +4,7 @@ import java.text.{ParseException, SimpleDateFormat}
 import scala.collection.immutable.HashMap
 import org.slf4j.{Logger, LoggerFactory}
 
-object QuoteParser extends Fields {
+object QuoteParser extends Fields with safeCast {
   
   private lazy val log: Logger = LoggerFactory.getLogger(this.getClass)
   
@@ -32,36 +32,20 @@ object QuoteParser extends Fields {
   }
   
   private def parseOptionChain(msg: String) {
-//    println(msg)	//DELME
     val fieldMap = mapFields(msg)
-    if (fieldMap.contains(ASK) || fieldMap.contains(BID)) {
-//      println(msg)	//DELME
-      val sym = fieldMap.get(SYMBOL)
-      if (sym.isDefined) {
-//        val ask = if (fieldMap.get(ASK).isDefined) BigDecimal(fieldMap.get(ASK).get) else None
-//        val bid = BigDecimal(fieldMap.get(BID))
-//        val fields = getOptionFieldMap(fieldMap)
-        val timestamp = getUNIXTime(fieldMap.get(TIMESTAMP).getOrElse(""), fieldMap.get(DATE).getOrElse(""))
-        val option = OptionInfo(sym.get, timestamp, fieldMap)
-        
-//        
-//        //TODO: send to DB
-//        println(option.toString+"\t"+option.underlier)	//DELME
-      }
+    /* 
+     * The bulk of option updates recieved are just changes to the bid or ask size. Ignoring these.
+     * Every option response includes underlier symbol, option symbol, timestamp, and date.
+     * Only further processing responses containing updates to the bid or ask (and the initial response
+     * containing all relevant fields)
+     */
+    if (fieldMap.contains(ASK) || fieldMap.contains(BID) || fieldMap.size > 6) {
+      val timestamp = getUNIXTime(fieldMap.get(TIMESTAMP).getOrElse(""), fieldMap.get(DATE).getOrElse(""))
+      val option = OptionInfo(timestamp, fieldMap)
+      //TODO: send to DB
+//      println(option.ask+"\t"+option.asOf+"\t"+option.bid+"\t"+option.expMonth+"\t"+option.expYear+"\t"+option.isCall+"\t"+option.openInterest+"\t"+option.strike+"\t"+option.underlier+"\t"+option.volume)	//DELME
     }
   }
-  
-//  private def getOptionFieldMap(all: Map[Int, String]): Map[Int, String] = {
-//    val fields = new HashMap[Int, String]
-//    val fieldsToKeep: List[Int] = List(BID, ASK, VOLUME, UNDERLIER, STRIKE_PRICE, EXP_MONTH, EXP_YEAR, OPEN_INTEREST, PUT_CALL)
-//    all.foreach { case(k, v) =>
-//      if (fieldsToKeep.contains(k)) {
-////    	  println(k+"\t"+v)	//DELME
-//    	  fields.put(k, v)
-//      }
-//    }
-//    return fields
-//  }
   
   private def getUNIXTime(time: String, date: String): Long = {
     val dateString: String = time +"-"+ date
@@ -80,42 +64,29 @@ object QuoteParser extends Fields {
     tokens.foldLeft(HashMap.empty[Int, String]) {
       case (m, p) => {
         val pair = p.split("=")
-        println(toInt(pair(0)).getOrElse(0)+"\t"+pair(1))
-        m.updated(toInt(pair(0)).getOrElse(0), pair(1))
+        m.updated(toInt(pair(0)), pair(1))
       }
     }
   }
   
-  private def toInt(str: String): Option[Int] = {
-    try {
-      return Some(str.toInt)
-    } catch {
-      case e: NumberFormatException => return None 
-    }
-  }
-
 }
 
-case class zOptionInfo(sym: String, timestamp: Long) {
-  
-  var bid: Option[BigDecimal] = None
-  var ask: Option[BigDecimal] = None
-  var strike: Option[BigDecimal] = None
-  var expMonth: Option[Int] = None
-  var expYear: Option[Int] = None
-  var volume: Option[Long] = None
-  var openInterest: Option[Int] = None
-  var underlier: Option[String] = None
-  var isCall: Option[Boolean] = None
-  
-  def setFields(fields: Map[Int, String]) {
-    fields.foreach { case(k, v) =>
-//      println(k+"\t"+v)	//DELME    
+trait safeCast {
+  def toInt(str: String): Int = {
+    try {
+      return str.toInt
+    } catch {
+      case e: NumberFormatException => return 0
     }
-    
-    underlier = Some("ABC")
-  }  
+  }
   
+  def toBigDecimal(str: String): BigDecimal = {
+    try {
+      return BigDecimal(str)
+    } catch {
+      case e: NumberFormatException => return BigDecimal("0") 
+    }
+  }  
 }
 
 trait Fields {
