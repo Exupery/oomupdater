@@ -22,12 +22,10 @@ object QuoteParser extends Fields with safeCast {
     val fieldMap = mapFields(msg)
     if (fieldMap.contains(LAST)) {
       val sym = fieldMap.get(SYMBOL)
-      if (sym.isDefined) {
-        val last = BigDecimal(fieldMap.get(LAST).getOrElse("0"))
-        val timestamp = getUNIXTime(fieldMap.get(TIMESTAMP).getOrElse(""), fieldMap.get(DATE).getOrElse(""))
-        //TODO: send sym, last, and timestamp to DB
-//        println(sym.get+"\t"+last+"\t\t"+timestamp)	//DELME
-      }
+      val last = toBigDecimal(fieldMap.get(LAST).getOrElse("0"))
+      val timestamp = getUNIXTime(fieldMap.get(TIMESTAMP).getOrElse(""), fieldMap.get(DATE).getOrElse(""))
+      //TODO: send sym, last, and timestamp to DB
+//      println(sym.get+"\t"+last+"\t\t"+timestamp)	//DELME
     }
   }
   
