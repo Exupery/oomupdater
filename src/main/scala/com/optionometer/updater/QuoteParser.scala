@@ -1,6 +1,7 @@
 package com.optionometer.updater
 
 import java.text.{ParseException, SimpleDateFormat}
+import scala.collection.immutable.HashMap
 import org.slf4j.{Logger, LoggerFactory}
 
 object QuoteParser extends Fields {
@@ -75,11 +76,11 @@ object QuoteParser extends Fields {
   private def mapFields(msg: String): Map[Int, String] = {
     val start = if (msg.contains("|")) msg.indexOf("|") + 1 else 0
     val tokens = msg.substring(start).split(";").filterNot(_.isEmpty)
-    tokens.foldLeft(scala.collection.immutable.HashMap.empty[Int, String]) {
-      case (k, p) => {
+    tokens.foldLeft(HashMap.empty[Int, String]) {
+      case (m, p) => {
         val pair = p.split("=")
         println(toInt(pair(0)).getOrElse(0)+"\t"+pair(1))
-        k.updated(toInt(pair(0)).getOrElse(0), pair(1))
+        m.updated(toInt(pair(0)).getOrElse(0), pair(1))
       }
     }
   }
