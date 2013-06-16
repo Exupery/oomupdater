@@ -1,7 +1,6 @@
 package com.optionometer.updater
 
 import java.text.{ParseException, SimpleDateFormat}
-import scala.collection.mutable.{HashMap, Map}
 import org.slf4j.{Logger, LoggerFactory}
 
 object QuoteParser extends Fields {
@@ -50,17 +49,17 @@ object QuoteParser extends Fields {
     }
   }
   
-  private def getOptionFieldMap(all: Map[Int, String]): Map[Int, String] = {
-    val fields = new HashMap[Int, String]
-    val fieldsToKeep: List[Int] = List(BID, ASK, VOLUME, UNDERLIER, STRIKE_PRICE, EXP_MONTH, EXP_YEAR, OPEN_INTEREST, PUT_CALL)
-    all.foreach { case(k, v) =>
-      if (fieldsToKeep.contains(k)) {
-//    	  println(k+"\t"+v)	//DELME
-    	  fields.put(k, v)
-      }
-    }
-    return fields
-  }
+//  private def getOptionFieldMap(all: Map[Int, String]): Map[Int, String] = {
+//    val fields = new HashMap[Int, String]
+//    val fieldsToKeep: List[Int] = List(BID, ASK, VOLUME, UNDERLIER, STRIKE_PRICE, EXP_MONTH, EXP_YEAR, OPEN_INTEREST, PUT_CALL)
+//    all.foreach { case(k, v) =>
+//      if (fieldsToKeep.contains(k)) {
+////    	  println(k+"\t"+v)	//DELME
+//    	  fields.put(k, v)
+//      }
+//    }
+//    return fields
+//  }
   
   private def getUNIXTime(time: String, date: String): Long = {
     val dateString: String = time +"-"+ date
@@ -74,15 +73,15 @@ object QuoteParser extends Fields {
   }
   
   private def mapFields(msg: String): Map[Int, String] = {
-    val fields = new HashMap[Int, String]
     val start = if (msg.contains("|")) msg.indexOf("|") + 1 else 0
-    msg.substring(start).split(";").foreach { field =>
-      val pair = field.split("=")
-      if (pair.length == 2) {
-      	fields.put(toInt(pair(0)).getOrElse(0), pair(1))
+    val tokens = msg.substring(start).split(";").filterNot(_.isEmpty)
+    tokens.foldLeft(scala.collection.immutable.HashMap.empty[Int, String]) {
+      case (k, p) => {
+        val pair = p.split("=")
+        println(toInt(pair(0)).getOrElse(0)+"\t"+pair(1))
+        k.updated(toInt(pair(0)).getOrElse(0), pair(1))
       }
-  	}
-    return fields
+    }
   }
   
   private def toInt(str: String): Option[Int] = {
