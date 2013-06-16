@@ -9,7 +9,7 @@ object Main extends App {
 
   override def main(args: Array[String]): Unit = {
     log.info("*** Optionometer Quote Updater Started ***")
-    val symbols = HashSet("IBM")	//TODO: replace
+    val symbols = HashSet("IBM")	//TODO: replace with DJIA, QQQ, & S&P500 components
     QuoteImporter.begin(symbols)
   }
 

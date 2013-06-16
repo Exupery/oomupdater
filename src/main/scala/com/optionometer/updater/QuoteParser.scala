@@ -20,12 +20,14 @@ object QuoteParser extends Fields with safeCast {
   
   private def parseLevelOne(msg: String) {
     val fieldMap = mapFields(msg)
+    /* 
+     * Ignore equity updates that don't include a last trade update
+     */
     if (fieldMap.contains(LAST)) {
       val sym = fieldMap.get(SYMBOL)
       val last = toBigDecimal(fieldMap.get(LAST).getOrElse("0"))
       val timestamp = getUNIXTime(fieldMap.get(TIMESTAMP).getOrElse(""), fieldMap.get(DATE).getOrElse(""))
       //TODO: send sym, last, and timestamp to DB
-//      println(sym.get+"\t"+last+"\t\t"+timestamp)	//DELME
     }
   }
   
@@ -41,7 +43,6 @@ object QuoteParser extends Fields with safeCast {
       val timestamp = getUNIXTime(fieldMap.get(TIMESTAMP).getOrElse(""), fieldMap.get(DATE).getOrElse(""))
       val option = OptionInfo(timestamp, fieldMap)
       //TODO: send to DB
-//      println(option.ask+"\t"+option.asOf+"\t"+option.bid+"\t"+option.expMonth+"\t"+option.expYear+"\t"+option.isCall+"\t"+option.openInterest+"\t"+option.strike+"\t"+option.underlier+"\t"+option.volume)	//DELME
     }
   }
   

@@ -5,7 +5,6 @@ import java.math.BigInteger
 import java.net.{Socket, ServerSocket}
 import java.security.MessageDigest
 import scala.io.Source
-import scala.collection.immutable.HashSet
 import org.slf4j.{Logger, LoggerFactory}
 
 object QuoteImporter {
@@ -19,10 +18,6 @@ object QuoteImporter {
   private lazy val out = new OutputStreamWriter(socket.getOutputStream)
   
   private lazy val log: Logger = LoggerFactory.getLogger(this.getClass)
-  
-  def begin {
-    begin(new HashSet[String])
-  }
   
   def begin(symbols: Set[String]) {
     log.info("Updating Quotes...")
