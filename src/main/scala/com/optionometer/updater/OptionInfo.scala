@@ -1,6 +1,6 @@
 package com.optionometer.updater
 
-class OptionInfo private (symbol: String, timestamp: Long, fields: Map[Int, String]) {
+class OptionInfo private (symbol: String, timestamp: Long, fields: Map[Int, String]) extends Fields {
   
   val sym = symbol
   val asOf = timestamp
