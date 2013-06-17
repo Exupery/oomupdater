@@ -7,6 +7,7 @@ class OptionInfo private (timestamp: Long, fields: Map[Int, String]) extends Fie
   val bid: Option[BigDecimal] = if (fields.get(BID).isDefined) Some(toBigDecimal(fields(BID))) else None
   val ask: Option[BigDecimal] = if (fields.get(ASK).isDefined) Some(toBigDecimal(fields(ASK))) else None
   val strike: Option[BigDecimal] = if (fields.get(STRIKE_PRICE).isDefined) Some(toBigDecimal(fields(STRIKE_PRICE))) else None
+  //TODO: parse expDay from symbol
   val expMonth: Option[Int] = if (fields.get(EXP_MONTH).isDefined) Some(toInt(fields(EXP_MONTH))) else None
   val expYear: Option[Int] = if (fields.get(EXP_YEAR).isDefined) Some(toInt(fields(EXP_YEAR))) else None
   val volume: Option[Int] = if (fields.get(VOLUME).isDefined) Some(toInt(fields(VOLUME))) else None
