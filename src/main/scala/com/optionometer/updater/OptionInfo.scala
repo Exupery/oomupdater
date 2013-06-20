@@ -15,13 +15,18 @@ class OptionInfo private (timestamp: Long, fields: Map[Int, String]) extends Fie
   val isCall: Option[Boolean] = if (fields.get(PUT_CALL).isDefined) Some(fields(PUT_CALL).equalsIgnoreCase("C")) else None
   
   lazy val expDay: Option[Int] = {
-    //TODO: parse expDay from symbol
-    None
+    val pattern = "-\\d{4}(\\d\\d)[CP]\\d".r
+    val m = pattern.findAllIn(sym).matchData.map(m => m.group(1))
+    if (m.hasNext) Some(toInt(m.next)) else None
   }
   
   lazy val expUnixTime: Option[Long] = {
-    //TODO: calc expUNIXTime
-    None
+    if (expMonth.isEmpty || expYear.isEmpty || expDay.isEmpty) {
+      None
+    } else {
+      //TODO: calcUNIXtime
+      None
+    }
   }
   
 }
