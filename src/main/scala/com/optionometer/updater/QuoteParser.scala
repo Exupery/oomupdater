@@ -6,6 +6,7 @@ import org.slf4j.{Logger, LoggerFactory}
 
 object QuoteParser extends Fields with safeCast {
   
+  private lazy val dbh = DBHandler
   private lazy val log: Logger = LoggerFactory.getLogger(this.getClass)
   
   def parse(msg: String) {
