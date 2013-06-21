@@ -1,5 +1,7 @@
 package com.optionometer.updater
 
+import java.util.GregorianCalendar
+
 class OptionInfo private (timestamp: Long, fields: Map[Int, String]) extends Fields with safeCast {
 
   val asOf = timestamp
@@ -21,11 +23,11 @@ class OptionInfo private (timestamp: Long, fields: Map[Int, String]) extends Fie
   }
   
   lazy val expUnixTime: Option[Long] = {
-    if (expMonth.isEmpty || expYear.isEmpty || expDay.isEmpty) {
+    if (expYear.isEmpty || expMonth.isEmpty || expDay.isEmpty) {
       None
     } else {
-      //TODO: calcUNIXtime
-      None
+      val c = new GregorianCalendar(expYear.get, expMonth.get - 1, expDay.get)
+      Some(c.getTimeInMillis / 1000)
     }
   }
   
