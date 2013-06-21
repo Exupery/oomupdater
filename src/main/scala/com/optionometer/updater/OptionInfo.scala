@@ -14,7 +14,7 @@ class OptionInfo private (timestamp: Long, fields: Map[Int, String]) extends Fie
   val volume: Option[Int] = if (fields.get(VOLUME).isDefined) Some(toInt(fields(VOLUME))) else None
   val openInterest: Option[Int] = if (fields.get(OPEN_INTEREST).isDefined) Some(toInt(fields(OPEN_INTEREST))) else None
   val underlier: Option[String] = if (fields.get(UNDERLIER).isDefined) Some(fields(UNDERLIER)) else None
-  val isCall: Option[Boolean] = if (fields.get(PUT_CALL).isDefined) Some(fields(PUT_CALL).equalsIgnoreCase("C")) else None
+  val optionType: Option[String] = if (fields.get(PUT_CALL).isDefined) Some(fields(PUT_CALL)) else None
   
   lazy val expDay: Option[Int] = {
     val pattern = "-\\d{4}(\\d\\d)[CP]\\d".r
