@@ -6,7 +6,7 @@ import org.slf4j.{Logger, LoggerFactory}
 
 object DBHandler {
   
-  def test() = updateOption(OptionInfo(System.currentTimeMillis/1000, Map[Int, String](1003->"+IBM-130628C160.00", 2004->"18.11")))	//DELME
+  def test() = updateOption(OptionInfo(System.currentTimeMillis/1000, Map[Int, String](1003->"+IBM-130628C160.00", 2004->"19.11")))	//DELME
   private val dbURL = "jdbc:" + sys.env("DB_URL")
   private var db: Connection = _
 		
@@ -43,12 +43,19 @@ object DBHandler {
       val update = "INSERT INTO options (symbol"+opt.cols+") VALUES(?"+qs+") ON DUPLICATE KEY UPDATE "+onUpdate
       val ps = db.prepareStatement(update)
       ps.setString(1, option.sym)
-      ps.setBigDecimal(2, toJavaBigDecimal(opt.vals(0).asInstanceOf[BigDecimal]))
       ps.setLong(3, option.asOf)
+      opt.vals.foreach { v =>
+        v match {
+          case i: Int => println("it's a int:"+i)
+          case d: BigDecimal => println("it's a bigd:"+d)
+          case s: String => println("it's a string:"+s)
+          case _ => println("it's something unexpected")
+        }
+      }
+      ps.setBigDecimal(2, toJavaBigDecimal(opt.vals(0).asInstanceOf[BigDecimal]))
       ps.setBigDecimal(4, toJavaBigDecimal(opt.vals(0).asInstanceOf[BigDecimal]))
-      //TODO: iterate through a vals list?
-      val updatedRows = ps.executeUpdate()
-      println(updatedRows)	//DELME
+//      val updatedRows = ps.executeUpdate()
+//      println(updatedRows)	//DELME
     } catch {
       case e:SQLException => log.error("Unable to execute update: {}", e.getMessage)
     } finally {
@@ -76,12 +83,63 @@ object OptionDB {
     val vals = ListBuffer.empty[Any]
     val updateStr = new StringBuilder("")
     if (option.ask.isDefined) {
-    	cols.append(",ask")
-    	vals += option.ask.get
-    	updateStr.append(",ask=?")
+      cols.append(",ask")
+      vals += option.ask.get
+      updateStr.append(",ask=?")
     }
-    println(vals.size)		//DELME
-    println(vals.toString)	//DELME
+    if (option.bid.isDefined) {
+      cols.append(",bid")
+      vals += option.bid.get
+      updateStr.append(",bid=?")
+    }
+    if (option.strike.isDefined) {
+      cols.append(",strike")
+      vals += option.strike.get
+      updateStr.append(",strike=?")
+    }
+    if (option.volume.isDefined) {
+      cols.append(",volume")
+      vals += option.volume.get
+      updateStr.append(",volume=?")
+    }
+    if (option.openInterest.isDefined) {
+      cols.append(",open_interest")
+      vals += option.openInterest.get
+      updateStr.append(",open_interest=?")
+    }
+    
+    if (option.underlier.isDefined) {
+      cols.append(",underlier")
+      vals += option.underlier.get
+      updateStr.append(",underlier=?")
+    }
+    if (option.optionType.isDefined) {
+      cols.append(",call_or_put")
+      vals += option.optionType.get
+      updateStr.append(",call_or_put=?")
+    }    
+    
+    if (option.expYear.isDefined) {
+      cols.append(",exp_year")
+      vals += option.expYear.get
+      updateStr.append(",exp_year=?")
+      if (option.expMonth.isDefined) {
+        cols.append(",exp_month")
+    	vals += option.expMonth.get
+    	updateStr.append(",exp_month=?")
+    	if (option.expDay.isDefined) {
+    	  cols.append(",exp_day")
+    	  vals += option.expDay.get
+    	  updateStr.append(",exp_day=?")
+    	  if (option.expUnixTime.isDefined) {
+    		cols.append(",exp_unixtime")
+      		vals += option.expUnixTime.get
+      		updateStr.append(",exp_unixtime=?")
+    	  }
+    	}
+      }
+    }
+    
     new OptionDB(cols.toString, vals.toList, updateStr.toString)
   }
 }
