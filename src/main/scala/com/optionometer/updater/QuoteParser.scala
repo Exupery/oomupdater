@@ -25,10 +25,10 @@ object QuoteParser extends Fields with safeCast {
      * Ignore equity updates that don't include a last trade update
      */
     if (fieldMap.contains(LAST)) {
-      val sym = fieldMap.get(SYMBOL)
+      val sym = fieldMap(SYMBOL)
       val last = toBigDecimal(fieldMap.get(LAST).getOrElse("0"))
       val timestamp = getUNIXTime(fieldMap.get(TIMESTAMP).getOrElse(""), fieldMap.get(DATE).getOrElse(""))
-      //TODO: send sym, last, and timestamp to DB
+      dbh.updateStock(new StockInfo(sym, last, timestamp))
     }
   }
   
@@ -43,7 +43,7 @@ object QuoteParser extends Fields with safeCast {
     if (fieldMap.contains(ASK) || fieldMap.contains(BID) || fieldMap.size > 6) {
       val timestamp = getUNIXTime(fieldMap.get(TIMESTAMP).getOrElse(""), fieldMap.get(DATE).getOrElse(""))
       val option = OptionInfo(timestamp, fieldMap)
-      println(option.sym+"\t"+option.expUnixTime+"\t"+option.expDay+"\t"+option.expMonth+"\t"+option.expYear)	//DELME
+//      println(option.sym+"\t"+option.expUnixTime+"\t"+option.expDay+"\t"+option.expMonth+"\t"+option.expYear)	//DELME
       //TODO: send to DB
     }
   }

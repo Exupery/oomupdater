@@ -5,7 +5,6 @@ import org.slf4j.{Logger, LoggerFactory}
 
 object DBHandler {
   
-  def test() = updateStock(StockInfo("FTH", BigDecimal("18.11"), System.currentTimeMillis/1000))	//DELME
   private val dbURL = "jdbc:" + sys.env("DB_URL")
   private var db: Connection = _
 		
@@ -19,10 +18,11 @@ object DBHandler {
       db = conn()
       val update = "INSERT INTO stocks (symbol, last_trade, last_update) VALUES(?, ?, ?) ON DUPLICATE KEY UPDATE last_trade=?, last_update=?"
       val ps = db.prepareStatement(update)
+      val last = toJavaBigDecimal(stock.last)
       ps.setString(1, stock.sym)
-      ps.setBigDecimal(2, new java.math.BigDecimal(stock.last.toString))
+      ps.setBigDecimal(2, last)
       ps.setLong(3, stock.timestamp)
-      ps.setBigDecimal(4, new java.math.BigDecimal(stock.last.toString))
+      ps.setBigDecimal(4, last)
       ps.setLong(5, stock.timestamp)
       val updatedRows = ps.executeUpdate()
       println(updatedRows)	//DELME
@@ -33,18 +33,13 @@ object DBHandler {
     }
   }
   
+  private def toJavaBigDecimal(sbd: BigDecimal): java.math.BigDecimal = {
+    return new java.math.BigDecimal(sbd.toString)
+  }
+  
   @throws(classOf[SQLException])
   private def conn(): Connection = {
     DriverManager.getConnection(dbURL)
-  }
-  
-  private def executeUpdate(update: String) {
-    val stmt = conn().createStatement()
-    val rs = stmt.executeQuery("SHOW TABLES")
-    println(rs)	//DELME
-    while (rs.next) {
-      println(rs.getObject(1))
-    }
   }
   
 }
