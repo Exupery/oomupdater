@@ -43,7 +43,6 @@ object QuoteParser extends Fields with safeCast {
     if (fieldMap.contains(ASK) || fieldMap.contains(BID) || fieldMap.size > 6) {
       val timestamp = getUNIXTime(fieldMap.get(TIMESTAMP).getOrElse(""), fieldMap.get(DATE).getOrElse(""))
       val option = OptionInfo(timestamp, fieldMap)
-      //TODO: filter extreme OTM from going to DB
       dbh.updateOption(option)
     }
   }
