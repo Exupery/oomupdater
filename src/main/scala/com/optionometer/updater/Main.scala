@@ -18,7 +18,7 @@ object Main extends App {
   
   def getComponents(): Set[String] = {
     val srcStrings = new StringBuilder("")
-    val files = List("djia", "sp500") 
+    val files = List("djia", "sp500", "qqq") 
     files.foreach(f => srcStrings.append(Source.fromFile(new File("indices/"+f)).mkString+"\n"))
     return (srcStrings.lines.filterNot(_.isEmpty).toList.map(sym => sym)).toSet
   }
