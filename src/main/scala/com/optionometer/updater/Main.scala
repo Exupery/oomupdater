@@ -11,9 +11,7 @@ object Main extends App {
   override def main(args: Array[String]): Unit = {
     log.info("*** Optionometer Quote Updater Started ***")
     val symbols = getComponents()
-    println(symbols)		//DELME
-    println(symbols.size)	//DELME
-//    QuoteImporter.begin(symbols)
+    QuoteImporter.begin(symbols)
   }
   
   def getComponents(): Set[String] = {
