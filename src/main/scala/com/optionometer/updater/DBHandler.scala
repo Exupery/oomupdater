@@ -6,7 +6,6 @@ import org.slf4j.{Logger, LoggerFactory}
 
 object DBHandler {
   
-  def test() = updateOption(OptionInfo(System.currentTimeMillis/1000, Map[Int, String](1003->"+IBM-130628C160.00", 2004->"19.11")))	//DELME
   private val dbURL = "jdbc:" + sys.env("DB_URL")
   private var db: Connection = _
 		
@@ -34,28 +33,41 @@ object DBHandler {
   }
   
   def updateOption(option: OptionInfo) {
-    println(option.sym+"\t"+option.ask+"\t"+option.bid+"\t"+option.asOf)		//DELME
     val opt = OptionDB(option)
+    val size = opt.vals.size
     val onUpdate = "last_update=?"+opt.updateStr
-    val qs = ",?" * opt.vals.size
+    val qs = ",?" * size
     try {
       db = conn()
-      val update = "INSERT INTO options (symbol"+opt.cols+") VALUES(?"+qs+") ON DUPLICATE KEY UPDATE "+onUpdate
+      val update = "INSERT INTO options (symbol, last_update"+opt.cols+") VALUES(?,?"+qs+") ON DUPLICATE KEY UPDATE "+onUpdate
       val ps = db.prepareStatement(update)
       ps.setString(1, option.sym)
-      ps.setLong(3, option.asOf)
+      ps.setLong(2, option.asOf)
+      ps.setLong(size+3, option.asOf)
+      var index = 3
       opt.vals.foreach { v =>
         v match {
-          case i: Int => println("it's a int:"+i)
-          case d: BigDecimal => println("it's a bigd:"+d)
-          case s: String => println("it's a string:"+s)
-          case _ => println("it's something unexpected")
+          case int: Int => {
+            ps.setInt(index, int)
+            ps.setInt(index+size+1, int)
+          }
+          case bgd: BigDecimal => {
+            ps.setBigDecimal(index, toJavaBigDecimal(bgd))
+            ps.setBigDecimal(index+size+1, toJavaBigDecimal(bgd))
+          }
+          case lng: Long => {
+            ps.setLong(index, lng)
+            ps.setLong(index+size+1, lng)
+          }
+          case str: String => {
+            ps.setString(index, str)
+            ps.setString(index+size+1, str)
+          }
+          case _ => log.error("Unexpected data type: {}", v.getClass)
         }
+        index += 1
       }
-      ps.setBigDecimal(2, toJavaBigDecimal(opt.vals(0).asInstanceOf[BigDecimal]))
-      ps.setBigDecimal(4, toJavaBigDecimal(opt.vals(0).asInstanceOf[BigDecimal]))
-//      val updatedRows = ps.executeUpdate()
-//      println(updatedRows)	//DELME
+      val updatedRows = ps.executeUpdate()
     } catch {
       case e:SQLException => log.error("Unable to execute update: {}", e.getMessage)
     } finally {
@@ -74,72 +86,40 @@ object DBHandler {
   
 }
 
-case class OptionDB(cols: String, vals: List[Any], updateStr: String)
+case class OptionDB(vals: List[Any], cols: String, updateStr: String)
 
 object OptionDB {
   
+  val fixToDB = FIX2DB.mappings
+  
   def apply(option: OptionInfo): OptionDB = {
-    val cols = new StringBuilder("")
     val vals = ListBuffer.empty[Any]
+    val cols = new StringBuilder("")
     val updateStr = new StringBuilder("")
-    if (option.ask.isDefined) {
-      cols.append(",ask")
-      vals += option.ask.get
-      updateStr.append(",ask=?")
+    option.getMappedFields.foreach { t2	=>
+      vals += t2._2
+      cols.append(","+fixToDB(t2._1))
+      updateStr.append(","+fixToDB(t2._1)+"=?")
     }
-    if (option.bid.isDefined) {
-      cols.append(",bid")
-      vals += option.bid.get
-      updateStr.append(",bid=?")
-    }
-    if (option.strike.isDefined) {
-      cols.append(",strike")
-      vals += option.strike.get
-      updateStr.append(",strike=?")
-    }
-    if (option.volume.isDefined) {
-      cols.append(",volume")
-      vals += option.volume.get
-      updateStr.append(",volume=?")
-    }
-    if (option.openInterest.isDefined) {
-      cols.append(",open_interest")
-      vals += option.openInterest.get
-      updateStr.append(",open_interest=?")
-    }
-    
-    if (option.underlier.isDefined) {
-      cols.append(",underlier")
-      vals += option.underlier.get
-      updateStr.append(",underlier=?")
-    }
-    if (option.optionType.isDefined) {
-      cols.append(",call_or_put")
-      vals += option.optionType.get
-      updateStr.append(",call_or_put=?")
-    }    
-    
-    if (option.expYear.isDefined) {
-      cols.append(",exp_year")
-      vals += option.expYear.get
-      updateStr.append(",exp_year=?")
-      if (option.expMonth.isDefined) {
-        cols.append(",exp_month")
-    	vals += option.expMonth.get
-    	updateStr.append(",exp_month=?")
-    	if (option.expDay.isDefined) {
-    	  cols.append(",exp_day")
-    	  vals += option.expDay.get
-    	  updateStr.append(",exp_day=?")
-    	  if (option.expUnixTime.isDefined) {
-    		cols.append(",exp_unixtime")
-      		vals += option.expUnixTime.get
-      		updateStr.append(",exp_unixtime=?")
-    	  }
-    	}
-      }
-    }
-    
-    new OptionDB(cols.toString, vals.toList, updateStr.toString)
+    new OptionDB(vals.toList, cols.toString, updateStr.toString)
   }
+}
+
+object FIX2DB extends Fields {
+  
+  val mappings: Map[Int, String] = {
+    Map(BID->"bid",
+        ASK->"ask",
+        STRIKE_PRICE->"strike",
+        VOLUME->"volume",
+        OPEN_INTEREST->"open_interest",
+        UNDERLIER->"underlier",
+        PUT_CALL->"call_or_put",
+        EXP_YEAR->"exp_year",
+        EXP_MONTH->"exp_month",
+        EXP_DAY->"exp_day",
+        EXP_UNIX->"exp_unixtime"
+    )
+  }
+  
 }

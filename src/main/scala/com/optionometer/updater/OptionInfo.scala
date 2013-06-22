@@ -6,28 +6,47 @@ class OptionInfo private (timestamp: Long, fields: Map[Int, String]) extends Fie
 
   val asOf = timestamp
   val sym = fields(SYMBOL)
-  val bid: Option[BigDecimal] = if (fields.get(BID).isDefined) Some(toBigDecimal(fields(BID))) else None
-  val ask: Option[BigDecimal] = if (fields.get(ASK).isDefined) Some(toBigDecimal(fields(ASK))) else None
-  val strike: Option[BigDecimal] = if (fields.get(STRIKE_PRICE).isDefined) Some(toBigDecimal(fields(STRIKE_PRICE))) else None
-  val expMonth: Option[Int] = if (fields.get(EXP_MONTH).isDefined) Some(toInt(fields(EXP_MONTH))) else None
-  val expYear: Option[Int] = if (fields.get(EXP_YEAR).isDefined) Some(toInt(fields(EXP_YEAR))) else None
-  val volume: Option[Int] = if (fields.get(VOLUME).isDefined) Some(toInt(fields(VOLUME))) else None
-  val openInterest: Option[Int] = if (fields.get(OPEN_INTEREST).isDefined) Some(toInt(fields(OPEN_INTEREST))) else None
-  val underlier: Option[String] = if (fields.get(UNDERLIER).isDefined) Some(fields(UNDERLIER)) else None
-  val optionType: Option[String] = if (fields.get(PUT_CALL).isDefined) Some(fields(PUT_CALL)) else None
   
-  lazy val expDay: Option[Int] = {
-    val pattern = "-\\d{4}(\\d\\d)[CP]\\d".r
-    val m = pattern.findAllIn(sym).matchData.map(m => m.group(1))
-    if (m.hasNext) Some(toInt(m.next)) else None
+  private val mappedFields = scala.collection.mutable.Map.empty[Int, Any]
+  
+  def getMappedFields: Map[Int, Any] = {
+    return mappedFields.toMap
   }
   
-  lazy val expUnixTime: Option[Long] = {
-    if (expYear.isEmpty || expMonth.isEmpty || expDay.isEmpty) {
-      None
-    } else {
-      val c = new GregorianCalendar(expYear.get, expMonth.get - 1, expDay.get)
-      Some(c.getTimeInMillis / 1000)
+  if (fields.get(ASK).isDefined) {
+    mappedFields.put(ASK, toBigDecimal(fields(ASK)))
+  }
+  if (fields.get(BID).isDefined) {
+    mappedFields.put(BID, toBigDecimal(fields(BID)))
+  }
+  if (fields.get(STRIKE_PRICE).isDefined) {
+    mappedFields.put(STRIKE_PRICE, toBigDecimal(fields(STRIKE_PRICE)))
+  }
+  if (fields.get(VOLUME).isDefined) {
+    mappedFields.put(VOLUME, toInt(fields(VOLUME)))
+  }
+  if (fields.get(OPEN_INTEREST).isDefined) {
+    mappedFields.put(OPEN_INTEREST, toInt(fields(OPEN_INTEREST)))
+  }
+  if (fields.get(UNDERLIER).isDefined) {
+    mappedFields.put(UNDERLIER, fields(UNDERLIER))
+  }
+  if (fields.get(PUT_CALL).isDefined) {
+    mappedFields.put(PUT_CALL, fields(PUT_CALL))
+  }
+  
+  if (fields.get(EXP_YEAR).isDefined) {
+    val year = toInt(fields(EXP_YEAR))
+    mappedFields.put(EXP_YEAR, year)
+    if (fields.get(EXP_MONTH).isDefined) {
+      val month = toInt(fields(EXP_MONTH))
+      mappedFields.put(EXP_MONTH, month)
+      val pattern = "-\\d{4}(\\d\\d)[CP]\\d".r
+      val m = pattern.findAllIn(sym).matchData.map(m => m.group(1))
+      val day = toInt(m.next)
+      mappedFields.put(EXP_DAY, day)
+      val c = new GregorianCalendar(year, month - 1, day)
+      mappedFields.put(EXP_UNIX, c.getTimeInMillis / 1000)
     }
   }
   

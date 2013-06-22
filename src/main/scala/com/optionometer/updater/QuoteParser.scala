@@ -43,8 +43,8 @@ object QuoteParser extends Fields with safeCast {
     if (fieldMap.contains(ASK) || fieldMap.contains(BID) || fieldMap.size > 6) {
       val timestamp = getUNIXTime(fieldMap.get(TIMESTAMP).getOrElse(""), fieldMap.get(DATE).getOrElse(""))
       val option = OptionInfo(timestamp, fieldMap)
-      println(option.sym+"\t"+option.expUnixTime+"\t"+option.expDay+"\t"+option.expMonth+"\t"+option.expYear)	//DELME
-      //TODO: send to DB
+      //TODO: filter extreme OTM from going to DB
+      dbh.updateOption(option)
     }
   }
   
@@ -112,5 +112,7 @@ trait Fields {
   protected val OPEN_INTEREST	= 	2037
   protected val PUT_CALL		= 	2038
   protected val EXP_YEAR		= 	2040
+  protected val EXP_DAY		= 	9001
+  protected val EXP_UNIX		= 	9002
   
 }
