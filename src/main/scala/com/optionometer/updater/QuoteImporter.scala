@@ -22,6 +22,7 @@ object QuoteImporter {
   def begin(symbols: Set[String]) {
     log.info("Updating Quotes...")
     logIn
+    //TODO: need to rotate symbol sub/unsub
     symbols.foreach(sym => subscribe(sym))
     while (socket.isConnected) {
       Source.fromInputStream(socket.getInputStream).getLines.foreach(line => QuoteParser.parse(line))
@@ -50,12 +51,12 @@ object QuoteImporter {
     out.flush
   }
   
-  def subscribe(sym: String) {
+  private def subscribe(sym: String) {
     sendMessage("S|1003=" + sym.toUpperCase + ";2000=20000\n")		//LEVEL 1
     sendMessage("S|1003=" + sym.toUpperCase + ";2000=20004\n")		//OPTION CHAIN
   }
   
-  def unSubscribe(sym: String) {
+  private def unSubscribe(sym: String) {
     sendMessage("U|1003=" + sym.toUpperCase + ";2000=20000\n")		//LEVEL 1
     sendMessage("U|1003=" + sym.toUpperCase + ";2000=20004\n")		//OPTION CHAIN
   }  
