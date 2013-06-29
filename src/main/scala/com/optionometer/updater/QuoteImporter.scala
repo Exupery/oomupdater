@@ -4,6 +4,7 @@ import java.io._
 import java.math.BigInteger
 import java.net.{Socket, ServerSocket}
 import java.security.MessageDigest
+import java.util.concurrent.{Executors, ExecutorService}
 import scala.io.Source
 import org.slf4j.{Logger, LoggerFactory}
 
@@ -22,8 +23,7 @@ object QuoteImporter {
   def begin(symbols: Set[String]) {
     log.info("Updating Quotes...")
     logIn
-    //TODO: need to rotate symbol sub/unsub
-    symbols.foreach(sym => subscribe(sym))
+    Executors.newSingleThreadExecutor.execute(new Subscriber(symbols, 15))
     while (socket.isConnected) {
       Source.fromInputStream(socket.getInputStream).getLines.foreach(line => QuoteParser.parse(line))
     }
@@ -47,8 +47,12 @@ object QuoteImporter {
   }
   
   private def sendMessage(msg: String) {
-    out.write(msg)
-    out.flush
+    try {
+      out.write(msg)
+      out.flush
+    } catch {
+      case e:IOException => log.error("I/O Exception thrown sending message: {}", e.getMessage)
+    }
   }
   
   private def subscribe(sym: String) {
@@ -61,13 +65,25 @@ object QuoteImporter {
     sendMessage("U|1003=" + sym.toUpperCase + ";2000=20004\n")		//OPTION CHAIN
   }  
   
-}
-
-class Subscriber extends Runnable {
-  def run() {
-    //TODO: break sym list into blocks
-    //TODO: subscribe to all syms in block
-    //TODO: unsubscribe to all syms in block after XX seconds
-    //TODO: repeat for each block
+  class Subscriber(symbols: Set[String], blockSize: Int) extends Runnable {
+  /*
+   * Need to rotate subscription to remain under subscription symbol cap
+   */
+    private def rotateSymbols() {
+      log.info("Subscribing to {} symbols in blocks of {}", symbols.size, blockSize)
+      symbols.grouped(blockSize).toList.foreach { block =>
+        for (sym <- block) { subscribe(sym) }
+        Thread.sleep(10000)
+        for (sym <- block) { unSubscribe(sym) }
+        Thread.sleep(250)
+      }
+      log.info("Subscription rotation completed for {} symbols", symbols.size)
+    }
+    
+    def run() {
+      while (socket.isConnected) {
+        rotateSymbols()
+      }
+    }
   }
 }
