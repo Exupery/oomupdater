@@ -62,3 +62,12 @@ object QuoteImporter {
   }  
   
 }
+
+class Subscriber extends Runnable {
+  def run() {
+    //TODO: break sym list into blocks
+    //TODO: subscribe to all syms in block
+    //TODO: unsubscribe to all syms in block after XX seconds
+    //TODO: repeat for each block
+  }
+}
