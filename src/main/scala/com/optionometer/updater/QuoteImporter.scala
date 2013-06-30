@@ -4,7 +4,7 @@ import java.io._
 import java.math.BigInteger
 import java.net.{Socket, ServerSocket}
 import java.security.MessageDigest
-import java.util.concurrent.{Executors, ExecutorService}
+import java.util.concurrent.{Executors, ExecutorService, TimeUnit}
 import scala.io.Source
 import org.slf4j.{Logger, LoggerFactory}
 
@@ -23,10 +23,17 @@ object QuoteImporter {
   def begin(symbols: Set[String]) {
     log.info("Updating Quotes...")
     logIn
-    Executors.newSingleThreadExecutor.execute(new Subscriber(symbols, 15))
+    
+//    Executors.newSingleThreadExecutor.execute(new Subscriber(symbols, 15))
+    val executor = Executors.newFixedThreadPool(2)
+    executor.execute(new Subscriber(symbols, 15))
+    executor.execute(new KeepAlive())
+    
     while (socket.isConnected) {
       Source.fromInputStream(socket.getInputStream).getLines.foreach(line => QuoteParser.parse(line))
     }
+    
+    executor.shutdown()
     out.close
     log.info("Connection Closed!")
   }
@@ -51,7 +58,10 @@ object QuoteImporter {
       out.write(msg)
       out.flush
     } catch {
-      case e:IOException => log.error("I/O Exception thrown sending message: {}", e.getMessage)
+      case e:IOException => {
+        log.error("I/O Exception thrown sending message: {}", e.getMessage)
+        socket.close()
+      }
     }
   }
   
@@ -65,16 +75,22 @@ object QuoteImporter {
     sendMessage("U|1003=" + sym.toUpperCase + ";2000=20004\n")		//OPTION CHAIN
   }  
   
-  class Subscriber(symbols: Set[String], blockSize: Int) extends Runnable {
-  /*
+  /**
    * Need to rotate subscription to remain under subscription symbol cap
    */
+  class Subscriber(symbols: Set[String], blockSize: Int) extends Runnable {
+  
+    val scheduler = Executors.newScheduledThreadPool(blockSize) 
+    
     private def rotateSymbols() {
       log.info("Subscribing to {} symbols in blocks of {}", symbols.size, blockSize)
       symbols.grouped(blockSize).toList.foreach { block =>
-        for (sym <- block) { subscribe(sym) }
-        Thread.sleep(10000)
-        for (sym <- block) { unSubscribe(sym) }
+        for (sym <- block) { 
+          subscribe(sym)
+          scheduler.schedule(new unSubscribe(sym), 15, TimeUnit.SECONDS)
+        }
+//        Thread.sleep(15000)
+//        for (sym <- block) { unSubscribe(sym) }
         Thread.sleep(250)
       }
       log.info("Subscription rotation completed for {} symbols", symbols.size)
@@ -83,6 +99,22 @@ object QuoteImporter {
     def run() {
       while (socket.isConnected) {
         rotateSymbols()
+      }
+    }
+    
+    class unSubscribe(sym: String) extends Runnable {
+      def run() {
+        unSubscribe(sym)
+      }
+    }
+    
+  }
+  
+  class KeepAlive() extends Runnable {
+    def run() {
+      while (socket.isConnected) {
+        sendMessage("9|")
+        Thread.sleep(1000)
       }
     }
   }
