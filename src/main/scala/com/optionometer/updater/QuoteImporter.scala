@@ -87,7 +87,7 @@ object QuoteImporter {
       symbols.grouped(blockSize).toList.foreach { block =>
         for (sym <- block) { 
           subscribe(sym)
-          scheduler.schedule(new unSubscribe(sym), 15, TimeUnit.SECONDS)
+//          scheduler.schedule(new unSubscribe(sym), 15, TimeUnit.SECONDS)
         }
 //        Thread.sleep(15000)
 //        for (sym <- block) { unSubscribe(sym) }
