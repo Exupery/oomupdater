@@ -24,16 +24,15 @@ object QuoteImporter {
     log.info("Updating Quotes...")
     logIn
     
-//    Executors.newSingleThreadExecutor.execute(new Subscriber(symbols, 15))
-    val executor = Executors.newFixedThreadPool(2)
-    executor.execute(new Subscriber(symbols, 15))
-    executor.execute(new KeepAlive())
+    Executors.newSingleThreadExecutor.execute(new Subscriber(symbols, 15))
+//    val executor = Executors.newFixedThreadPool(2)
+//    executor.execute(new Subscriber(symbols, 15))
     
     while (socket.isConnected) {
       Source.fromInputStream(socket.getInputStream).getLines.foreach(line => QuoteParser.parse(line))
     }
     
-    executor.shutdown()
+//    executor.shutdown()
     out.close
     log.info("Connection Closed!")
   }
@@ -80,8 +79,6 @@ object QuoteImporter {
    */
   class Subscriber(symbols: Set[String], blockSize: Int) extends Runnable {
   
-    val scheduler = Executors.newScheduledThreadPool(blockSize) 
-    
     private def rotateSymbols() {
       log.info("Subscribing to {} symbols in blocks of {}", symbols.size, blockSize)
       symbols.grouped(blockSize).toList.foreach { block =>
@@ -97,9 +94,11 @@ object QuoteImporter {
     }
     
     def run() {
-      while (socket.isConnected) {
-        rotateSymbols()
-      }
+//      while (socket.isConnected) {
+//        rotateSymbols()
+//        Thread.sleep(250)
+//      }
+      rotateSymbols()
     }
     
     class unSubscribe(sym: String) extends Runnable {
@@ -110,12 +109,4 @@ object QuoteImporter {
     
   }
   
-  class KeepAlive() extends Runnable {
-    def run() {
-      while (socket.isConnected) {
-        sendMessage("9|")
-        Thread.sleep(1000)
-      }
-    }
-  }
 }
