@@ -16,7 +16,7 @@ object QuoteImporter {
   private val port: Int = sys.env("FIX_PORT").toInt
   
   private lazy val socket = new Socket(host, port)
-  private lazy val out = new OutputStreamWriter(socket.getOutputStream)
+  private lazy val out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream)))
   
   private lazy val log: Logger = LoggerFactory.getLogger(this.getClass)
   
@@ -24,15 +24,12 @@ object QuoteImporter {
     log.info("Updating Quotes...")
     logIn
     
-    Executors.newSingleThreadExecutor.execute(new Subscriber(symbols, 15))
-//    val executor = Executors.newFixedThreadPool(2)
-//    executor.execute(new Subscriber(symbols, 15))
+    Executors.newSingleThreadExecutor.execute(new Subscriber(symbols, 12))
     
-    while (socket.isConnected) {
+    while (!socket.isClosed) {	//TODO handle unexpected close
       Source.fromInputStream(socket.getInputStream).getLines.foreach(line => QuoteParser.parse(line))
     }
     
-//    executor.shutdown()
     out.close
     log.info("Connection Closed!")
   }
@@ -54,8 +51,12 @@ object QuoteImporter {
   
   private def sendMessage(msg: String) {
     try {
-      out.write(msg)
-      out.flush
+      if (out.checkError()) {
+        log.error("Unable to send message '{}'", msg)
+      } else {
+        out.print(msg)
+	    out.flush
+      }
     } catch {
       case e:IOException => {
         log.error("I/O Exception thrown sending message: {}", e.getMessage)
@@ -88,17 +89,16 @@ object QuoteImporter {
         }
 //        Thread.sleep(15000)
 //        for (sym <- block) { unSubscribe(sym) }
-        Thread.sleep(250)
+        Thread.sleep(200)
       }
       log.info("Subscription rotation completed for {} symbols", symbols.size)
     }
     
     def run() {
-//      while (socket.isConnected) {
-//        rotateSymbols()
-//        Thread.sleep(250)
+      Thread.sleep(200)	//TODO: change to a delayed call of run if this helps
+//      while (!socket.isClosed) {
+        rotateSymbols()
 //      }
-      rotateSymbols()
     }
     
     class unSubscribe(sym: String) extends Runnable {
