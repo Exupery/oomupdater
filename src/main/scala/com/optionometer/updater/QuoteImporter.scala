@@ -87,10 +87,11 @@ object QuoteImporter {
       log.info("Subscribing to {} symbols", symbols.size)
       for (sym <- symbols) {
         subscribe(sym)
-        Thread.sleep(5000)
+        Thread.sleep(7500)
         unSubscribe(sym)
       }
       log.info("Subscription rotation complete")
+      exit()	//DELME
     }
     
     def run() {
