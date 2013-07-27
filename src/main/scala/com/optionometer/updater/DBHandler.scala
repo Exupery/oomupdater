@@ -16,12 +16,12 @@ object DBHandler {
   //DELME: temp class to print db counts for subscription debugging
   def printCounts() {
     db = conn()
-    val sps = db.prepareStatement("select count(*) from stocks")
+    val sps = db.prepareStatement("select count(*) as cnt from stocks")
     val srs = sps.executeQuery()
-    println(srs.getRow)
-    val ops = db.prepareStatement("select count(*) from options")
+    while (srs.next()) (println(srs.getObject(1)))
+    val ops = db.prepareStatement("select count(*) as cnt from options")
     val ors = ops.executeQuery()
-    println(ors.getRow)
+    while (ors.next()) (println(ors.getObject(1)))
     db.close()
   }
   //DELME
