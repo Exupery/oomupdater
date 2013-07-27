@@ -19,7 +19,7 @@ object DBHandler {
     val sps = db.prepareStatement("select count(*) as cnt from stocks")
     val srs = sps.executeQuery()
     while (srs.next()) (println(srs.getObject(1)))
-    val ops = db.prepareStatement("select count(*) as cnt, count(distinct symbol) as dcnt from options")
+    val ops = db.prepareStatement("select count(distinct underlier) as unds, count(*) as cnt from options")
     val ors = ops.executeQuery()
     while (ors.next()) (println(ors.getObject(2)+"\t"+ors.getObject(1)))
     db.close()
