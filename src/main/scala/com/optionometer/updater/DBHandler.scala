@@ -13,6 +13,18 @@ object DBHandler {
   
   ClassLoader.getSystemClassLoader().loadClass("com.mysql.jdbc.Driver")
   
+  //DELME: temp class to print db counts for subscription debugging
+  def printCounts() {
+    db = conn()
+    val sps = db.prepareStatement("select count(*) from stocks")
+    val srs = sps.executeQuery()
+    println(srs.getRow)
+    val ops = db.prepareStatement("select count(*) from options")
+    val ors = ops.executeQuery()
+    println(ors.getRow)
+    db.close()
+  }
+  
   def updateStock(stock: StockInfo) {
     try {
       db = conn()

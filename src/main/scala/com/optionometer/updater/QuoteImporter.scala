@@ -22,15 +22,16 @@ object QuoteImporter {
   
   def begin(symbols: Set[String]) {
     log.info("Updating Quotes...")
-    logIn
+//    logIn
+//    
+//    Executors.newSingleThreadExecutor.execute(new Subscriber(symbols, 12))
+    Executors.newSingleThreadExecutor.execute(new outputCounts)
     
-    Executors.newSingleThreadExecutor.execute(new Subscriber(symbols, 12))
-    
-    while (!socket.isClosed) {	//TODO handle unexpected close
-      Source.fromInputStream(socket.getInputStream).getLines.foreach(line => QuoteParser.parse(line))
-    }
-    
-    out.close
+//    while (!socket.isClosed) {	//TODO handle unexpected close
+//      Source.fromInputStream(socket.getInputStream).getLines.foreach(line => QuoteParser.parse(line))
+//    }
+//    
+//    out.close
     log.info("Connection Closed!")
   }
   
@@ -107,6 +108,16 @@ object QuoteImporter {
       }
     }
     
+  }
+  
+  //DELME: temp class to print db counts for subscription debugging
+  class outputCounts extends Runnable {
+    
+    def run() {
+      println(System.currentTimeMillis())
+      DBHandler.printCounts
+      Executors.newScheduledThreadPool(1).schedule(new outputCounts, 5, TimeUnit.SECONDS)
+    }
   }
   
 }
