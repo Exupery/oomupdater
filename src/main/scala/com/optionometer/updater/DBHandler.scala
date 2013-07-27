@@ -24,6 +24,7 @@ object DBHandler {
     println(ors.getRow)
     db.close()
   }
+  //DELME
   
   def updateStock(stock: StockInfo) {
     try {
