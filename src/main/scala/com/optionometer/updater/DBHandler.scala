@@ -7,28 +7,27 @@ import org.slf4j.{Logger, LoggerFactory}
 object DBHandler {
   
   private val dbURL = "jdbc:" + sys.env("DB_URL")
-  private var db: Connection = _
 		
   private lazy val log: Logger = LoggerFactory.getLogger(this.getClass)
   
   ClassLoader.getSystemClassLoader().loadClass("com.mysql.jdbc.Driver")
   
-  //DELME: temp class to print db counts for subscription debugging
+  //DELME: temp method to print db counts for subscription debugging
   def printCounts() {
-    db = conn()
+    val db = DriverManager.getConnection(dbURL)
     val sps = db.prepareStatement("select count(*) as cnt from stocks")
     val srs = sps.executeQuery()
     while (srs.next()) (println(srs.getObject(1)))
     val ops = db.prepareStatement("select count(distinct underlier) as unds, count(*) as cnt from options")
     val ors = ops.executeQuery()
-    while (ors.next()) (println(ors.getObject(2)+"\t"+ors.getObject(1)))
+    while (ors.next()) (println(ors.getObject(1)+"\t"+ors.getObject(2)))
     db.close()
   }
   //DELME
   
   def updateStock(stock: StockInfo) {
+    val db = DriverManager.getConnection(dbURL)
     try {
-      db = conn()
       val update = "INSERT INTO stocks (symbol, last_trade, last_update) VALUES(?, ?, ?) ON DUPLICATE KEY UPDATE last_trade=?, last_update=?"
       val ps = db.prepareStatement(update)
       val last = toJavaBigDecimal(stock.last)
@@ -50,8 +49,8 @@ object DBHandler {
     val size = opt.vals.size
     val onUpdate = "last_update=?"+opt.updateStr
     val qs = ",?" * size
+    val db = DriverManager.getConnection(dbURL)
     try {
-      db = conn()
       val update = "INSERT INTO options (symbol, last_update"+opt.cols+") VALUES(?,?"+qs+") ON DUPLICATE KEY UPDATE "+onUpdate
       val ps = db.prepareStatement(update)
       ps.setString(1, option.sym)
