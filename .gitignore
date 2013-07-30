@@ -2,6 +2,7 @@
 .cache
 .project
 .settings
+.class
 target/
 project/boot
 project/target
