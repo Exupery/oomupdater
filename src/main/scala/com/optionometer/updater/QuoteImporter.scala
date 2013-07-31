@@ -67,11 +67,13 @@ object QuoteImporter {
   }
   
   private def subscribe(sym: String) {
+    println("subscribing: "+sym+" in "+Thread.currentThread().getName())		//DELME
     sendMessage("S|1003=" + sym.toUpperCase + ";2000=20000\n")		//LEVEL 1
     sendMessage("S|1003=" + sym.toUpperCase + ";2000=20004\n")		//OPTION CHAIN
   }
   
   private def unSubscribe(sym: String) {
+    println("unsubscribing: "+sym+" in "+Thread.currentThread().getName())		//DELME
     sendMessage("U|1003=" + sym.toUpperCase + ";2000=20000\n")		//LEVEL 1
     sendMessage("U|1003=" + sym.toUpperCase + ";2000=20004\n")		//OPTION CHAIN
   }  
@@ -86,12 +88,13 @@ object QuoteImporter {
     private def rotateSymbols() {
       log.info("Subscribing to {} symbols", symbols.size)
       for (sym <- symbols) {
+        println("rotating: "+sym+" in "+Thread.currentThread().getName())		//DELME
         subscribe(sym)
         Thread.sleep(7500)
         unSubscribe(sym)
       }
       log.info("Subscription rotation complete")
-      exit()	//DELME
+//      exit()	//DELME
     }
     
     def run() {

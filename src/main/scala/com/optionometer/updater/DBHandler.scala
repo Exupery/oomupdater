@@ -7,6 +7,7 @@ import org.slf4j.{Logger, LoggerFactory}
 object DBHandler {
   
   private val dbURL = "jdbc:" + sys.env("DB_URL")
+  private var delme = Set[String]()	//DELME
 		
   private lazy val log: Logger = LoggerFactory.getLogger(this.getClass)
   
@@ -26,6 +27,9 @@ object DBHandler {
   //DELME
   
   def updateStock(stock: StockInfo) {
+    println("updating: "+stock.sym+" in "+Thread.currentThread().getName())		//DELME
+    delme+=stock.sym	//DELME
+    println(delme.size)	//DELME
     val db = DriverManager.getConnection(dbURL)
     try {
       val update = "INSERT INTO stocks (symbol, last_trade, last_update) VALUES(?, ?, ?) ON DUPLICATE KEY UPDATE last_trade=?, last_update=?"
@@ -45,6 +49,7 @@ object DBHandler {
   }
   
   def updateOption(option: OptionInfo) {
+//    println("updating: "+option.sym)		//DELME
     val opt = OptionDB(option)
     val size = opt.vals.size
     val onUpdate = "last_update=?"+opt.updateStr

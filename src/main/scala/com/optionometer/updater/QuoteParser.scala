@@ -11,7 +11,11 @@ object QuoteParser extends Fields with safeCast {
   
   def parse(msg: String) {
     msg match {
-      case m if msg.startsWith("G") => log.info("Successfully logged into quote server '{}'", mapFields(m).get(QUOTE_SERVER).getOrElse(""))    	
+//      case m if msg.startsWith("G") => log.info("Successfully logged into quote server '{}'", mapFields(m).get(QUOTE_SERVER).getOrElse(""))    	
+    case m if msg.startsWith("G") => {
+      log.info("Successfully logged into quote server '{}'", mapFields(m).get(QUOTE_SERVER).getOrElse(""))
+      println("parsing in "+Thread.currentThread().getName())	//DELME AND REVERT
+    }
       case m if msg.startsWith("D") => log.info("Login denied: {}", mapFields(m).get(LOGIN_REASON).getOrElse("Reason unknown"))
       case m if msg.startsWith("1") => parseLevelOne(m)
       case m if msg.startsWith("4") => parseOptionChain(m)
