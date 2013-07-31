@@ -67,13 +67,11 @@ object QuoteImporter {
   }
   
   private def subscribe(sym: String) {
-    println("subscribing: "+sym+" in "+Thread.currentThread().getName())		//DELME
     sendMessage("S|1003=" + sym.toUpperCase + ";2000=20000\n")		//LEVEL 1
     sendMessage("S|1003=" + sym.toUpperCase + ";2000=20004\n")		//OPTION CHAIN
   }
   
   private def unSubscribe(sym: String) {
-    println("unsubscribing: "+sym+" in "+Thread.currentThread().getName())		//DELME
     sendMessage("U|1003=" + sym.toUpperCase + ";2000=20000\n")		//LEVEL 1
     sendMessage("U|1003=" + sym.toUpperCase + ";2000=20004\n")		//OPTION CHAIN
   }  
@@ -88,17 +86,16 @@ object QuoteImporter {
     private def rotateSymbols() {
       log.info("Subscribing to {} symbols", symbols.size)
       for (sym <- symbols) {
-        println("rotating: "+sym+" in "+Thread.currentThread().getName())		//DELME
         subscribe(sym)
         Thread.sleep(7500)
         unSubscribe(sym)
       }
       log.info("Subscription rotation complete")
-//      exit()	//DELME
+      //TODO: exit once all updates written to db
     }
     
     def run() {
-      Thread.sleep(200)	//TODO: change to a delayed call of run if this helps
+      Thread.sleep(200)	//TODO: change to a delayed call of run
       subscribe("qqq")	//schedule 1 to keep connection always alive
       rotateSymbols()
     }
@@ -110,7 +107,7 @@ object QuoteImporter {
     def run() {
       println(System.currentTimeMillis())
       DBHandler.printCounts
-      Executors.newScheduledThreadPool(1).schedule(new outputCounts, 5, TimeUnit.SECONDS)
+      Executors.newScheduledThreadPool(1).schedule(new outputCounts, 30, TimeUnit.SECONDS)
     }
   }
   //DELME
