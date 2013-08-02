@@ -25,6 +25,27 @@ object DBHandler {
   }
   //DELME
   
+  def updatedStockCount: Int = {
+    return updatedCount("stocks")
+  }
+  
+  def updatedOptionCount: Int = {
+    return updatedCount("options")
+  }  
+  
+  private def updatedCount(table: String): Int = {
+    val db = DriverManager.getConnection(dbURL)
+    return try {
+      val rs = db.prepareStatement("SELECT COUNT(*) AS cnt FROM "+table+" WHERE DATEDIFF(NOW(),FROM_UNIXTIME(last_update))<1").executeQuery()
+      if (rs.next()) rs.getInt("cnt") else -1
+    } catch {
+      case e:SQLException => log.error("Unable to get updated count: {}", e.getMessage)
+      -1
+    } finally {
+      db.close()
+    }
+  }
+  
   def updateStock(stock: StockInfo) {
     val db = DriverManager.getConnection(dbURL)
     try {

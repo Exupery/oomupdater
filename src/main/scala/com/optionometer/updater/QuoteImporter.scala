@@ -10,6 +10,7 @@ import org.slf4j.{Logger, LoggerFactory}
 
 object QuoteImporter {
   
+  private var updating = true
   private val username = sys.env("FIX_USERNAME")
   private val password = sys.env("FIX_PASSWORD")
   private val host = sys.env("FIX_IP")
@@ -21,18 +22,30 @@ object QuoteImporter {
   private lazy val log: Logger = LoggerFactory.getLogger(this.getClass)
   
   def begin(symbols: Set[String]) {
-    log.info("Updating Quotes...")
     logIn()
     
     Executors.newSingleThreadExecutor.execute(new Subscriber(symbols))
-    Executors.newSingleThreadExecutor.execute(new outputCounts)
+    Executors.newScheduledThreadPool(1).schedule(new checkCounts, 30, TimeUnit.SECONDS)
     
-    while (!socket.isClosed) {	//TODO handle unexpected close
+    updating = true
+    log.info("Updating Quotes...")
+    while (updating) {
       Source.fromInputStream(socket.getInputStream).getLines.foreach(line => QuoteParser.parse(line))
     }
     
+    socket.close()
     out.close()
     log.info("Connection Closed!")
+    
+    if (updateComplete(symbols.size)) {
+      log.info("Update Complete")
+    } else {
+      begin(symbols)
+    }
+  }
+  
+  private def updateComplete(target: Int): Boolean = {
+    return DBHandler.updatedStockCount >= target
   }
   
   private def logIn() {
@@ -61,6 +74,7 @@ object QuoteImporter {
     } catch {
       case e:IOException => {
         log.error("I/O Exception thrown sending message: {}", e.getMessage)
+        out.close()
         socket.close()
       }
     }
@@ -84,31 +98,32 @@ object QuoteImporter {
     private val scheduler = Executors.newScheduledThreadPool(1)
     
     private def rotateSymbols() {
+      
       log.info("Subscribing to {} symbols", symbols.size)
       for (sym <- symbols) {
         subscribe(sym)
-        Thread.sleep(7500)
+        Thread.sleep(15000)
         unSubscribe(sym)
       }
       log.info("Subscription rotation complete")
-      //TODO: exit once all updates written to db
     }
     
     def run() {
       Thread.sleep(200)	//TODO: change to a delayed call of run
-      subscribe("qqq")	//schedule 1 to keep connection always alive
+      subscribe("qqq")	//schedule 1 to keep connection alive
       rotateSymbols()
     }
     
   }
   
-  //DELME: temp class to print db counts for subscription debugging
-  class outputCounts extends Runnable {
+  class checkCounts(lastCount: Int=0) extends Runnable {
     def run() {
-      println(System.currentTimeMillis())
-      DBHandler.printCounts
-      Executors.newScheduledThreadPool(1).schedule(new outputCounts, 30, TimeUnit.SECONDS)
+      println(System.currentTimeMillis())	//DELME
+      DBHandler.printCounts					//DELME
+      val newCount = DBHandler.updatedOptionCount
+      updating = lastCount != newCount
+      println(updating, lastCount, newCount)	//DELME
+      Executors.newScheduledThreadPool(1).schedule(new checkCounts(newCount), 60, TimeUnit.SECONDS)
     }
   }
-  //DELME
 }

@@ -12,6 +12,10 @@ object Main extends App {
     log.info("*** Optionometer Quote Updater Started ***")
     val symbols = getComponents()
     QuoteImporter.begin(symbols)
+    println(DBHandler.updatedStockCount)	//DELME
+    println(DBHandler.updatedOptionCount)	//DELME
+    println("exiting....")					//DELME
+    exit()
   }
   
   def getComponents(): Set[String] = {
