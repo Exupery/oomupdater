@@ -11,7 +11,9 @@ object Main extends App {
   override def main(args: Array[String]): Unit = {
     log.info("*** Optionometer Quote Updater Started ***")
     val symbols = getComponents()
-    QuoteImporter.begin(symbols)
+//    QuoteImporter.begin(symbols)
+    QuoteImporter.begin(Set("ibm"))			//DELME
+    println("final counts...")				//DELME
     println(DBHandler.updatedStockCount)	//DELME
     println(DBHandler.updatedOptionCount)	//DELME
     println("exiting....")					//DELME

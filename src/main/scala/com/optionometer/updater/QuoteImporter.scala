@@ -4,13 +4,13 @@ import java.io._
 import java.math.BigInteger
 import java.net.{Socket, ServerSocket}
 import java.security.MessageDigest
-import java.util.concurrent.{Executors, ExecutorService, TimeUnit}
+import java.util.concurrent._
 import scala.io.Source
 import org.slf4j.{Logger, LoggerFactory}
 
 object QuoteImporter {
   
-  private var updating = true
+//  private var updating = true
   private val username = sys.env("FIX_USERNAME")
   private val password = sys.env("FIX_PASSWORD")
   private val host = sys.env("FIX_IP")
@@ -22,26 +22,30 @@ object QuoteImporter {
   private lazy val log: Logger = LoggerFactory.getLogger(this.getClass)
   
   def begin(symbols: Set[String]) {
+    val updateCDL = new CountDownLatch(1)
+    
     logIn()
     
     Executors.newSingleThreadExecutor.execute(new Subscriber(symbols))
-    Executors.newScheduledThreadPool(1).schedule(new checkCounts, 30, TimeUnit.SECONDS)
+//    Executors.newScheduledThreadPool(1).schedule(new CheckCounts, 30, TimeUnit.SECONDS)
+//    Executors.newScheduledThreadPool(1).schedule(new CheckCounts(updateCDL), 30, TimeUnit.SECONDS)
+    Executors.newScheduledThreadPool(1).schedule(new CheckCounts(updateCDL), 30, TimeUnit.SECONDS)
     
-    updating = true
+//    updating = true
     log.info("Updating Quotes...")
-    while (updating) {
-      Source.fromInputStream(socket.getInputStream).getLines.foreach(line => QuoteParser.parse(line))
-    }
+    Executors.newSingleThreadExecutor.execute(new Listener())
+    updateCDL.await()
+    log.debug("done with importing")	//DELME
     
     socket.close()
     out.close()
     log.info("Connection Closed!")
     
-    if (updateComplete(symbols.size)) {
-      log.info("Update Complete")
-    } else {
-      begin(symbols)
-    }
+//    if (updateComplete(symbols.size)) {
+//      log.info("Update Complete")
+//    } else {
+//      begin(symbols)
+//    }
   }
   
   private def updateComplete(target: Int): Boolean = {
@@ -74,8 +78,6 @@ object QuoteImporter {
     } catch {
       case e:IOException => {
         log.error("I/O Exception thrown sending message: {}", e.getMessage)
-        out.close()
-        socket.close()
       }
     }
   }
@@ -102,7 +104,7 @@ object QuoteImporter {
       log.info("Subscribing to {} symbols", symbols.size)
       for (sym <- symbols) {
         subscribe(sym)
-        Thread.sleep(15000)
+        Thread.sleep(7500)
         unSubscribe(sym)
       }
       log.info("Subscription rotation complete")
@@ -110,20 +112,32 @@ object QuoteImporter {
     
     def run() {
       Thread.sleep(200)	//TODO: change to a delayed call of run
-      subscribe("qqq")	//schedule 1 to keep connection alive
+//      updating = false	//DELME
+//      subscribe("qqq")	//schedule 1 to keep connection alive
       rotateSymbols()
     }
     
   }
   
-  class checkCounts(lastCount: Int=0) extends Runnable {
+  class Listener() extends Runnable {
     def run() {
-      println(System.currentTimeMillis())	//DELME
+      Source.fromInputStream(socket.getInputStream).getLines.foreach(line => QuoteParser.parse(line))
+    }
+  }
+  
+  class CheckCounts(cdl: CountDownLatch, lastCount: Int=0) extends Runnable {
+    def run() {
+      log.debug(System.currentTimeMillis.toString)	//DELME
       DBHandler.printCounts					//DELME
       val newCount = DBHandler.updatedOptionCount
-      updating = lastCount != newCount
-      println(updating, lastCount, newCount)	//DELME
-      Executors.newScheduledThreadPool(1).schedule(new checkCounts(newCount), 60, TimeUnit.SECONDS)
+//      updating = lastCount != newCount	//DELME
+      println(lastCount != newCount, lastCount, newCount)	//DELME
+//      Executors.newScheduledThreadPool(1).schedule(new CheckCounts(newCount), 60, TimeUnit.SECONDS)
+      if (lastCount != newCount) {
+        Executors.newScheduledThreadPool(1).schedule(new CheckCounts(cdl, newCount), 10, TimeUnit.SECONDS)
+      } else {
+        cdl.countDown()
+      }
     }
   }
 }
