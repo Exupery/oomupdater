@@ -17,10 +17,10 @@ object DBHandler {
     val db = DriverManager.getConnection(dbURL)
     val sps = db.prepareStatement("select count(*) as cnt from stocks")
     val srs = sps.executeQuery()
-    while (srs.next()) (println(srs.getObject(1)))
+    while (srs.next()) (println("stocks:\t"+srs.getObject(1)))
     val ops = db.prepareStatement("select count(distinct underlier) as unds, count(*) as cnt from options")
     val ors = ops.executeQuery()
-    while (ors.next()) (println(ors.getObject(1)+"\t"+ors.getObject(2)))
+    while (ors.next()) (println("unds:\t"+ors.getObject(1)+"\topts\t"+ors.getObject(2)))
     db.close()
   }
   //DELME

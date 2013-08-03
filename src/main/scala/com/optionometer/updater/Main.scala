@@ -11,18 +11,15 @@ object Main extends App {
   override def main(args: Array[String]): Unit = {
     log.info("*** Optionometer Quote Updater Started ***")
     val symbols = getComponents()
-//    QuoteImporter.begin(symbols)
-    QuoteImporter.begin(Set("ibm"))			//DELME
-    println("final counts...")				//DELME
-    println(DBHandler.updatedStockCount)	//DELME
-    println(DBHandler.updatedOptionCount)	//DELME
-    println("exiting....")					//DELME
+    QuoteImporter.begin(symbols)
+    log.info("*** Exiting Quote Updater ***")
     exit()
   }
   
   def getComponents(): Set[String] = {
     val srcStrings = new StringBuilder("")
-    val files = List("djia", "sp500", "qqq")
+//    val files = List("djia", "sp500", "qqq")
+    val files = List("djia")		//TODO: revert
     files.foreach(f => srcStrings.append(Source.fromFile(new File("indices/"+f)).mkString+"\n"))
     return (srcStrings.lines.filterNot(_.isEmpty).toList.map(sym => sym)).toSet
   }

@@ -10,7 +10,6 @@ import org.slf4j.{Logger, LoggerFactory}
 
 object QuoteImporter {
   
-//  private var updating = true
   private val username = sys.env("FIX_USERNAME")
   private val password = sys.env("FIX_PASSWORD")
   private val host = sys.env("FIX_IP")
@@ -26,16 +25,12 @@ object QuoteImporter {
     
     logIn()
     
-    Executors.newSingleThreadExecutor.execute(new Subscriber(symbols))
-//    Executors.newScheduledThreadPool(1).schedule(new CheckCounts, 30, TimeUnit.SECONDS)
-//    Executors.newScheduledThreadPool(1).schedule(new CheckCounts(updateCDL), 30, TimeUnit.SECONDS)
+    Executors.newScheduledThreadPool(1).schedule(new Subscriber(symbols), 1, TimeUnit.SECONDS)
     Executors.newScheduledThreadPool(1).schedule(new CheckCounts(updateCDL), 30, TimeUnit.SECONDS)
     
-//    updating = true
     log.info("Updating Quotes...")
     Executors.newSingleThreadExecutor.execute(new Listener())
     updateCDL.await()
-    log.debug("done with importing")	//DELME
     
     socket.close()
     out.close()
@@ -97,8 +92,6 @@ object QuoteImporter {
    */
   class Subscriber(symbols: Set[String]) extends Runnable {
     
-    private val scheduler = Executors.newScheduledThreadPool(1)
-    
     private def rotateSymbols() {
       
       log.info("Subscribing to {} symbols", symbols.size)
@@ -111,9 +104,6 @@ object QuoteImporter {
     }
     
     def run() {
-      Thread.sleep(200)	//TODO: change to a delayed call of run
-//      updating = false	//DELME
-//      subscribe("qqq")	//schedule 1 to keep connection alive
       rotateSymbols()
     }
     
@@ -121,20 +111,22 @@ object QuoteImporter {
   
   class Listener() extends Runnable {
     def run() {
-      Source.fromInputStream(socket.getInputStream).getLines.foreach(line => QuoteParser.parse(line))
+      try {
+        Source.fromInputStream(socket.getInputStream).getLines.foreach(line => QuoteParser.parse(line))
+      } catch {
+        case e:Exception => log.error("Unable to read from InputStream:\t", e.getMessage)
+      }
     }
   }
   
   class CheckCounts(cdl: CountDownLatch, lastCount: Int=0) extends Runnable {
     def run() {
-      log.debug(System.currentTimeMillis.toString)	//DELME
-      DBHandler.printCounts					//DELME
+      log.debug(System.currentTimeMillis.toString)			//DELME
+      DBHandler.printCounts									//DELME
       val newCount = DBHandler.updatedOptionCount
-//      updating = lastCount != newCount	//DELME
       println(lastCount != newCount, lastCount, newCount)	//DELME
-//      Executors.newScheduledThreadPool(1).schedule(new CheckCounts(newCount), 60, TimeUnit.SECONDS)
       if (lastCount != newCount) {
-        Executors.newScheduledThreadPool(1).schedule(new CheckCounts(cdl, newCount), 10, TimeUnit.SECONDS)
+        Executors.newScheduledThreadPool(1).schedule(new CheckCounts(cdl, newCount), 60, TimeUnit.SECONDS)
       } else {
         cdl.countDown()
       }
