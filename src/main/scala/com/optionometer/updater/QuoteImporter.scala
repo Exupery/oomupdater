@@ -36,6 +36,7 @@ object QuoteImporter {
     out.close()
     log.info("Connection Closed!")
     
+    //TODO: pop from syms so restart resumes from where left off
 //    if (updateComplete(symbols.size)) {
 //      log.info("Update Complete")
 //    } else {
@@ -63,6 +64,7 @@ object QuoteImporter {
   }
   
   private def sendMessage(msg: String) {
+    //TODO: make syncrhonized
     try {
       if (out.checkError()) {
         log.error("Unable to send message '{}'", msg)
@@ -97,6 +99,7 @@ object QuoteImporter {
       log.info("Subscribing to {} symbols", symbols.size)
       for (sym <- symbols) {
         subscribe(sym)
+        //TODO: replace sleep with count check for sym
         Thread.sleep(7500)
         unSubscribe(sym)
       }
