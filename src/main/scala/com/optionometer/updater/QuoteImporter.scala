@@ -21,16 +21,16 @@ object QuoteImporter {
   private lazy val log: Logger = LoggerFactory.getLogger(this.getClass)
   
   def begin(symbols: Set[String]) {
-    val updateCDL = new CountDownLatch(1)
+    val updateCdl = new CountDownLatch(1)
     
     logIn()
     
     Executors.newScheduledThreadPool(1).schedule(new Subscriber(symbols), 1, TimeUnit.SECONDS)
-    Executors.newScheduledThreadPool(1).schedule(new CheckCounts(updateCDL), 30, TimeUnit.SECONDS)
+    Executors.newScheduledThreadPool(1).schedule(new CheckCounts(updateCdl), 30, TimeUnit.SECONDS)
     
     log.info("Updating Quotes...")
     Executors.newSingleThreadExecutor.execute(new Listener())
-    updateCDL.await()
+    updateCdl.await()
     
     socket.close()
     out.close()
