@@ -2,7 +2,7 @@ package com.optionometer.updater
 
 import java.io._
 import java.math.BigInteger
-import java.net.{Socket, ServerSocket}
+import java.net.{ServerSocket, Socket, SocketException}
 import java.security.MessageDigest
 import java.util.concurrent._
 import scala.io.Source
@@ -26,7 +26,7 @@ object QuoteImporter {
     logIn()
     
     Executors.newScheduledThreadPool(1).schedule(new Subscriber(symbols), 1, TimeUnit.SECONDS)
-    Executors.newScheduledThreadPool(1).schedule(new CheckCounts(updateCdl), 30, TimeUnit.SECONDS)
+    Executors.newScheduledThreadPool(1).schedule(new CheckTotalCount(updateCdl, System.currentTimeMillis/1000L), 30, TimeUnit.SECONDS)
     
     log.info("Updating Quotes...")
     Executors.newSingleThreadExecutor.execute(new Listener())
@@ -44,9 +44,9 @@ object QuoteImporter {
 //    }
   }
   
-  private def updateComplete(target: Int): Boolean = {
-    return DBHandler.updatedStockCount >= target
-  }
+//  private def updateComplete(target: Int): Boolean = {
+//    return DBHandler.updatedStockCount >= target
+//  }
   
   private def logIn() {
     log.info("Logging in...")
@@ -64,17 +64,16 @@ object QuoteImporter {
   }
   
   private def sendMessage(msg: String) {
-    //TODO: make syncrhonized
-    try {
-      if (out.checkError()) {
-        log.error("Unable to send message '{}'", msg)
-      } else {
-        out.print(msg)
-	    out.flush
-      }
-    } catch {
-      case e:IOException => {
-        log.error("I/O Exception thrown sending message: {}", e.getMessage)
+    out.synchronized {
+      try {
+        if (out.checkError()) {
+          log.error("Unable to send message '{}'", msg)
+        } else {
+    	  out.print(msg)
+	      out.flush
+        }
+      } catch {
+	    case e:IOException => log.error("I/O Exception thrown sending message: {}", e.getMessage)
       }
     }
   }
@@ -90,7 +89,7 @@ object QuoteImporter {
   }  
   
   /**
-   * Need to rotate subscription to remain under subscription symbol cap
+   * Rotate subscription to remain under subscription symbol cap
    */
   class Subscriber(symbols: Set[String]) extends Runnable {
     
@@ -98,9 +97,10 @@ object QuoteImporter {
       
       log.info("Subscribing to {} symbols", symbols.size)
       for (sym <- symbols) {
+        val updateCdl = new CountDownLatch(1)
+        val check = new CheckCount(updateCdl, sym, System.currentTimeMillis/1000L)
         subscribe(sym)
-        //TODO: replace sleep with count check for sym
-        Thread.sleep(7500)
+        updateCdl.await()
         unSubscribe(sym)
       }
       log.info("Subscription rotation complete")
@@ -117,19 +117,31 @@ object QuoteImporter {
       try {
         Source.fromInputStream(socket.getInputStream).getLines.foreach(line => QuoteParser.parse(line))
       } catch {
+        case e:SocketException => log.warn("InputStream Closed:\t", e.getMessage)
         case e:Exception => log.error("Unable to read from InputStream:\t", e.getMessage)
       }
     }
   }
   
-  class CheckCounts(cdl: CountDownLatch, lastCount: Int=0) extends Runnable {
+  class CheckCount(cdl: CountDownLatch, und: String, since: Long, lastCount: Int=0) extends Runnable {
+    def run() {
+      val newCount = DBHandler.updatedOptionCount(since, Some(und))
+      if (lastCount != newCount) {
+        Executors.newScheduledThreadPool(1).schedule(new CheckCount(cdl, und, since, newCount), 10, TimeUnit.SECONDS)
+      } else {
+        cdl.countDown()
+      }
+    }
+  }
+  
+  class CheckTotalCount(cdl: CountDownLatch, since: Long, lastCount: Int=0) extends Runnable {
     def run() {
       log.debug(System.currentTimeMillis.toString)			//DELME
       DBHandler.printCounts									//DELME
-      val newCount = DBHandler.updatedOptionCount
+      val newCount = DBHandler.updatedOptionCount(since)
       println(lastCount != newCount, lastCount, newCount)	//DELME
       if (lastCount != newCount) {
-        Executors.newScheduledThreadPool(1).schedule(new CheckCounts(cdl, newCount), 60, TimeUnit.SECONDS)
+        Executors.newScheduledThreadPool(1).schedule(new CheckTotalCount(cdl, since, newCount), 60, TimeUnit.SECONDS)
       } else {
         cdl.countDown()
       }
