@@ -21,15 +21,16 @@ object QuoteImporter {
   private lazy val log: Logger = LoggerFactory.getLogger(this.getClass)
   
   def begin(symbols: Set[String]) {
-    val updateCdl = new CountDownLatch(1)
+    val updateCdl = new CountDownLatch(symbols.size)
     
     logIn()
     
-    Executors.newScheduledThreadPool(1).schedule(new Subscriber(symbols), 1, TimeUnit.SECONDS)
-    Executors.newScheduledThreadPool(1).schedule(new CheckTotalCount(updateCdl, System.currentTimeMillis/1000L), 30, TimeUnit.SECONDS)
+    Executors.newScheduledThreadPool(1).schedule(new Subscriber(symbols, updateCdl), 1, TimeUnit.SECONDS)
+    Executors.newScheduledThreadPool(1).schedule(new CheckTotalCount(System.currentTimeMillis/1000L), 30, TimeUnit.SECONDS)
     
     log.info("Updating Quotes...")
     Executors.newSingleThreadExecutor.execute(new Listener())
+    
     updateCdl.await()
     
     socket.close()
@@ -91,7 +92,7 @@ object QuoteImporter {
   /**
    * Rotate subscription to remain under subscription symbol cap
    */
-  class Subscriber(symbols: Set[String]) extends Runnable {
+  class Subscriber(symbols: Set[String], cdl: CountDownLatch) extends Runnable {
     
     private def rotateSymbols() {
       
@@ -99,9 +100,11 @@ object QuoteImporter {
       for (sym <- symbols) {
         val updateCdl = new CountDownLatch(1)
         val check = new CheckCount(updateCdl, sym, System.currentTimeMillis/1000L)
+        Executors.newFixedThreadPool(1).execute(check)
         subscribe(sym)
         updateCdl.await()
         unSubscribe(sym)
+        cdl.countDown()
       }
       log.info("Subscription rotation complete")
     }
@@ -123,28 +126,26 @@ object QuoteImporter {
     }
   }
   
-  class CheckCount(cdl: CountDownLatch, und: String, since: Long, lastCount: Int=0) extends Runnable {
+  class CheckCount(cdl: CountDownLatch, und: String, since: Long, lastCount: Int=(-1)) extends Runnable {
     def run() {
       val newCount = DBHandler.updatedOptionCount(since, Some(und))
       if (lastCount != newCount) {
-        Executors.newScheduledThreadPool(1).schedule(new CheckCount(cdl, und, since, newCount), 10, TimeUnit.SECONDS)
+        Executors.newScheduledThreadPool(1).schedule(new CheckCount(cdl, und, since, newCount), 8, TimeUnit.SECONDS)
       } else {
         cdl.countDown()
       }
     }
   }
   
-  class CheckTotalCount(cdl: CountDownLatch, since: Long, lastCount: Int=0) extends Runnable {
+  //DELME: temp class for rotation debugging
+  class CheckTotalCount(since: Long, lastCount: Int=0) extends Runnable {
     def run() {
-      log.debug(System.currentTimeMillis.toString)			//DELME
-      DBHandler.printCounts									//DELME
+      log.debug(System.currentTimeMillis.toString)
+      DBHandler.printCounts
       val newCount = DBHandler.updatedOptionCount(since)
-      println(lastCount != newCount, lastCount, newCount)	//DELME
-      if (lastCount != newCount) {
-        Executors.newScheduledThreadPool(1).schedule(new CheckTotalCount(cdl, since, newCount), 60, TimeUnit.SECONDS)
-      } else {
-        cdl.countDown()
-      }
+      println(lastCount != newCount, lastCount, newCount)
+      Executors.newScheduledThreadPool(1).schedule(new CheckTotalCount(since, newCount), 60, TimeUnit.SECONDS)
     }
   }
+  //DELME
 }

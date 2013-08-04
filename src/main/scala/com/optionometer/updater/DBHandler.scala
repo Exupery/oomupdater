@@ -27,15 +27,15 @@ object DBHandler {
   
   def updatedOptionCount(since: Long, und: Option[String]=None): Int = {
     val db = DriverManager.getConnection(dbURL)
+    //TODO: add check for updated/inserted time
     return try {
-      val stmt = new StringBuilder("SELECT COUNT(*) AS cnt FROM options WHERE last_update > ?")
+      val stmt = new StringBuilder("SELECT COUNT(*) AS cnt FROM options")
       if (und.isDefined) {
-        stmt.append(" AND underlier=?")
+        stmt.append(" WHERE underlier=?")
       }
       val ps = db.prepareStatement(stmt.toString)
-      ps.setLong(1, since)
       if (und.isDefined) {
-        ps.setString(2, und.get)
+        ps.setString(1, und.get)
       }
       val rs = ps.executeQuery()
       if (rs.next()) rs.getInt("cnt") else -1
