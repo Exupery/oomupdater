@@ -47,7 +47,7 @@ object DBHandler {
       db.close()
     }
     val dur = System.currentTimeMillis - start	//DELME
-    println("dur: "+dur+"ms")	//DELME
+//    println("dur: "+dur+"ms")					//DELME
     return updated
   }
   

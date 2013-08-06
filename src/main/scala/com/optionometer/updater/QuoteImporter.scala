@@ -69,7 +69,7 @@ object QuoteImporter {
     out.synchronized {
       try {
         if (out.checkError()) {
-          log.error("Unable to send message '{}' CLOSING CONNECTION", msg)
+          log.error("Unable to send message '{}...' CLOSING CONNECTION", msg.substring(0, 14))
           out.close()
           socket.close()
         } else {
@@ -103,7 +103,6 @@ object QuoteImporter {
       for (sym <- symbols) {
         val updateCdl = new CountDownLatch(1)
         val check = new CheckCount(updateCdl, sym, System.currentTimeMillis/1000L)
-//        .execute(check)
         pool.execute(check)
         subscribe(sym)
         updateCdl.await(30, TimeUnit.SECONDS)
@@ -141,12 +140,10 @@ object QuoteImporter {
   class CheckCount(cdl: CountDownLatch, und: String, since: Long, initCount: Int=(-1)) extends Runnable {
     
     def check(lastCount: Int) {
-      println("cc threads: "+Thread.activeCount())	//DELME
       val newCount = DBHandler.updatedOptionCount(since, Some(und))
       if (lastCount != newCount) {
         Thread.sleep(5000)
         check(newCount)
-//        Executors.newScheduledThreadPool(1).schedule(new CheckCount(cdl, und, since, newCount), 5, TimeUnit.SECONDS)
       } else {
         cdl.countDown()
       }      
@@ -161,7 +158,6 @@ object QuoteImporter {
   class CheckTotalCount(since: Long, initCount: Int=0) extends Runnable {
     
     def checkTotal(lastCount: Int) {
-      println("total threads: "+Thread.activeCount())	//DELME
       log.debug(System.currentTimeMillis.toString)
       DBHandler.printCounts
       val newCount = DBHandler.updatedOptionCount(since)
@@ -171,8 +167,7 @@ object QuoteImporter {
     }
     
     def run() {
-
-//      Executors.newScheduledThreadPool(1).schedule(new CheckTotalCount(since, newCount), 60, TimeUnit.SECONDS)
+      checkTotal(initCount)
     }
   }
   //DELME
