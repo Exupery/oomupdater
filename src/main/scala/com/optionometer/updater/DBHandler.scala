@@ -26,9 +26,10 @@ object DBHandler {
   //DELME
   
   def updatedOptionCount(since: Long, und: Option[String]=None): Int = {
+    val start = System.currentTimeMillis	//DELME
     val db = DriverManager.getConnection(dbURL)
     //TODO: add check for updated/inserted time
-    return try {
+    val updated = try {
       val stmt = new StringBuilder("SELECT COUNT(*) AS cnt FROM options")
       if (und.isDefined) {
         stmt.append(" WHERE underlier=?")
@@ -45,6 +46,9 @@ object DBHandler {
     } finally {
       db.close()
     }
+    val dur = System.currentTimeMillis - start	//DELME
+    println("dur: "+dur+"ms")	//DELME
+    return updated
   }
   
   def updateStock(stock: StockInfo) {

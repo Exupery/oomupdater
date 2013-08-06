@@ -32,6 +32,7 @@ object QuoteImporter {
     Executors.newSingleThreadExecutor.execute(new Listener())
     
     updateCdl.await()
+    log.debug("**** DONE WAITING ****")	//DELME
     
     socket.close()
     out.close()
@@ -68,7 +69,9 @@ object QuoteImporter {
     out.synchronized {
       try {
         if (out.checkError()) {
-          log.error("Unable to send message '{}'", msg)
+          log.error("Unable to send message '{}' CLOSING CONNECTION", msg)
+          out.close()
+          socket.close()
         } else {
     	  out.print(msg)
 	      out.flush
@@ -94,23 +97,32 @@ object QuoteImporter {
    */
   class Subscriber(symbols: Set[String], cdl: CountDownLatch) extends Runnable {
     
+    val pool = Executors.newFixedThreadPool(1)
+    
     private def rotateSymbols() {
-      
-      log.info("Subscribing to {} symbols", symbols.size)
       for (sym <- symbols) {
         val updateCdl = new CountDownLatch(1)
         val check = new CheckCount(updateCdl, sym, System.currentTimeMillis/1000L)
-        Executors.newFixedThreadPool(1).execute(check)
+//        .execute(check)
+        pool.execute(check)
         subscribe(sym)
-        updateCdl.await()
+        updateCdl.await(30, TimeUnit.SECONDS)
         unSubscribe(sym)
-        cdl.countDown()
+        if (socket.isClosed) {
+          log.warn("Socket is closed with {} symbols remaining - terminating rotation", cdl.getCount)
+          while (cdl.getCount > 0) cdl.countDown()
+          return
+        } else {
+          cdl.countDown()
+        }
+        
       }
-      log.info("Subscription rotation complete")
     }
     
     def run() {
+      log.info("Subscribing to {} symbols", symbols.size)
       rotateSymbols()
+      log.info("Subscription rotation complete")
     }
     
   }
@@ -126,25 +138,41 @@ object QuoteImporter {
     }
   }
   
-  class CheckCount(cdl: CountDownLatch, und: String, since: Long, lastCount: Int=(-1)) extends Runnable {
-    def run() {
+  class CheckCount(cdl: CountDownLatch, und: String, since: Long, initCount: Int=(-1)) extends Runnable {
+    
+    def check(lastCount: Int) {
+      println("cc threads: "+Thread.activeCount())	//DELME
       val newCount = DBHandler.updatedOptionCount(since, Some(und))
       if (lastCount != newCount) {
-        Executors.newScheduledThreadPool(1).schedule(new CheckCount(cdl, und, since, newCount), 8, TimeUnit.SECONDS)
+        Thread.sleep(5000)
+        check(newCount)
+//        Executors.newScheduledThreadPool(1).schedule(new CheckCount(cdl, und, since, newCount), 5, TimeUnit.SECONDS)
       } else {
         cdl.countDown()
-      }
+      }      
+    }
+    
+    def run() {
+      check(initCount)
     }
   }
   
   //DELME: temp class for rotation debugging
-  class CheckTotalCount(since: Long, lastCount: Int=0) extends Runnable {
-    def run() {
+  class CheckTotalCount(since: Long, initCount: Int=0) extends Runnable {
+    
+    def checkTotal(lastCount: Int) {
+      println("total threads: "+Thread.activeCount())	//DELME
       log.debug(System.currentTimeMillis.toString)
       DBHandler.printCounts
       val newCount = DBHandler.updatedOptionCount(since)
       println(lastCount != newCount, lastCount, newCount)
-      Executors.newScheduledThreadPool(1).schedule(new CheckTotalCount(since, newCount), 60, TimeUnit.SECONDS)
+      Thread.sleep(60000)
+      checkTotal(newCount)
+    }
+    
+    def run() {
+
+//      Executors.newScheduledThreadPool(1).schedule(new CheckTotalCount(since, newCount), 60, TimeUnit.SECONDS)
     }
   }
   //DELME
