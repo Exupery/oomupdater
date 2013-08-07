@@ -28,15 +28,15 @@ object DBHandler {
   def updatedOptionCount(since: Long, und: Option[String]=None): Int = {
     val start = System.currentTimeMillis	//DELME
     val db = DriverManager.getConnection(dbURL)
-    //TODO: add check for updated/inserted time
     val updated = try {
-      val stmt = new StringBuilder("SELECT COUNT(*) AS cnt FROM options")
+      val stmt = new StringBuilder("SELECT COUNT(*) AS cnt FROM options WHERE dbupdate_time > ?")
       if (und.isDefined) {
-        stmt.append(" WHERE underlier=?")
+        stmt.append(" AND underlier=?")
       }
       val ps = db.prepareStatement(stmt.toString)
+      ps.setLong(1, since)
       if (und.isDefined) {
-        ps.setString(1, und.get)
+        ps.setString(2, und.get)
       }
       val rs = ps.executeQuery()
       if (rs.next()) rs.getInt("cnt") else -1
@@ -54,7 +54,7 @@ object DBHandler {
   def updateStock(stock: StockInfo) {
     val db = DriverManager.getConnection(dbURL)
     try {
-      val update = "INSERT INTO stocks (symbol, last_trade, last_update) VALUES(?, ?, ?) ON DUPLICATE KEY UPDATE last_trade=?, last_update=?"
+      val update = "INSERT INTO stocks (symbol, last_trade, last_trade_time, dbupdate_time) VALUES(?, ?, ?, UNIX_TIMESTAMP(NOW())) ON DUPLICATE KEY UPDATE last_trade=?, last_trade_time=?, dbupdate_time=UNIX_TIMESTAMP(NOW())"
       val ps = db.prepareStatement(update)
       val last = toJavaBigDecimal(stock.last)
       ps.setString(1, stock.sym)
@@ -73,11 +73,11 @@ object DBHandler {
   def updateOption(option: OptionInfo) {
     val opt = OptionDB(option)
     val size = opt.vals.size
-    val onUpdate = "last_update=?"+opt.updateStr
+    val onUpdate = "dbupdate_time=UNIX_TIMESTAMP(NOW()), last_tick_time=?"+opt.updateStr
     val qs = ",?" * size
     val db = DriverManager.getConnection(dbURL)
     try {
-      val update = "INSERT INTO options (symbol, last_update"+opt.cols+") VALUES(?,?"+qs+") ON DUPLICATE KEY UPDATE "+onUpdate
+      val update = "INSERT INTO options (symbol, last_tick_time"+opt.cols+", dbupdate_time) VALUES(?,?"+qs+", UNIX_TIMESTAMP(NOW())) ON DUPLICATE KEY UPDATE "+onUpdate
       val ps = db.prepareStatement(update)
       ps.setString(1, option.sym)
       ps.setLong(2, option.asOf)
