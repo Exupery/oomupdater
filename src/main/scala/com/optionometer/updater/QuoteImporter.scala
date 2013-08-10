@@ -21,6 +21,7 @@ object QuoteImporter {
   private lazy val log: Logger = LoggerFactory.getLogger(this.getClass)
   
   def begin(symbols: Set[String]) {
+    val beginTime = System.currentTimeMillis / 1000L
     val updateCdl = new CountDownLatch(symbols.size)
     
     logIn()
@@ -38,17 +39,20 @@ object QuoteImporter {
     out.close()
     log.info("Connection Closed!")
     
-    //TODO: pop from syms so restart resumes from where left off
-//    if (updateComplete(symbols.size)) {
-//      log.info("Update Complete")
-//    } else {
-//      begin(symbols)
-//    }
+    val symsUpdated: Set[String] = updatedUnderliers(beginTime)
+    if (symsUpdated.size == symbols.size) {
+      log.info("Update Complete")
+    } else {
+      val symsNotUpdated: Set[String] = for (sym <- symbols; if !symsUpdated.contains(sym)) yield sym
+      log.info("{} symbols failed to update, attempting again...", symsNotUpdated.size)
+      begin(symsNotUpdated)
+    }
   }
   
-//  private def updateComplete(target: Int): Boolean = {
+  private def updatedUnderliers(since: Long): Set[String] = {
 //    return DBHandler.updatedStockCount >= target
-//  }
+    return Set()
+  }
   
   private def logIn() {
     log.info("Logging in...")
