@@ -5,49 +5,33 @@ import java.util.GregorianCalendar
 class OptionInfo private (timestamp: Long, fields: Map[Int, String]) extends Fields with safeCast {
 
   val asOf = timestamp
-  val sym = fields(SYMBOL)
+  val sym = fields.getOrElse(SYMBOL, "")
+  val fieldMap: Map[Int, Any] = mappedFields ++ nonMappedFields
   
-  private val mappedFields = scala.collection.mutable.Map.empty[Int, Any]
-  
-  def getMappedFields: Map[Int, Any] = {
-    return mappedFields.toMap
-  }
-  
-  if (fields.get(ASK).isDefined) {
-    mappedFields.put(ASK, toBigDecimal(fields(ASK)))
-  }
-  if (fields.get(BID).isDefined) {
-    mappedFields.put(BID, toBigDecimal(fields(BID)))
-  }
-  if (fields.get(STRIKE_PRICE).isDefined) {
-    mappedFields.put(STRIKE_PRICE, toBigDecimal(fields(STRIKE_PRICE)))
-  }
-  if (fields.get(VOLUME).isDefined) {
-    mappedFields.put(VOLUME, toInt(fields(VOLUME)))
-  }
-  if (fields.get(OPEN_INTEREST).isDefined) {
-    mappedFields.put(OPEN_INTEREST, toInt(fields(OPEN_INTEREST)))
-  }
-  if (fields.get(UNDERLIER).isDefined) {
-    mappedFields.put(UNDERLIER, fields(UNDERLIER))
-  }
-  if (fields.get(PUT_CALL).isDefined) {
-    mappedFields.put(PUT_CALL, fields(PUT_CALL))
-  }
-  
-  if (fields.get(EXP_YEAR).isDefined) {
-    val year = toInt(fields(EXP_YEAR))
-    mappedFields.put(EXP_YEAR, year)
-    if (fields.get(EXP_MONTH).isDefined) {
-      val month = toInt(fields(EXP_MONTH))
-      mappedFields.put(EXP_MONTH, month)
-      val pattern = "-\\d{4}(\\d\\d)[CP]\\d".r
-      val m = pattern.findAllIn(sym).matchData.map(m => m.group(1))
-      val day = toInt(m.next)
-      mappedFields.put(EXP_DAY, day)
-      val c = new GregorianCalendar(year, month - 1, day)
-      mappedFields.put(EXP_UNIX, c.getTimeInMillis / 1000)
+  private def mappedFields: Map[Int, Any] = fields.foldLeft(Map.empty[Int, Any]) { case (m, t) =>
+    t._1 match {
+      case ASK | BID | STRIKE_PRICE => m.updated(t._1, toBigDecimal(t._2))
+      case VOLUME | OPEN_INTEREST | EXP_MONTH | EXP_YEAR => m.updated(t._1, toInt(t._2))
+      case PUT_CALL | UNDERLIER => m.updated(t._1, t._2)
+      case _ => m
     }
+  }
+  
+  private def nonMappedFields: Map[Int, Any] = {
+    val month = fields.getOrElse(EXP_MONTH, "0")
+    val year = fields.getOrElse(EXP_YEAR, "0")
+    val pattern = "-\\d{4}(\\d\\d)[CP]\\d"
+    val day = {
+      if (sym.matches(pattern)) {
+        val m = pattern.r.findAllIn(sym).matchData.map(m => m.group(1))
+        toInt(m.next)
+      } else {
+        0
+      }
+    }
+    val c = new GregorianCalendar(toInt(year), toInt(month) - 1, day)
+    val unix = c.getTimeInMillis / 1000
+    Map(EXP_DAY->day, EXP_UNIX->unix)
   }
   
 }

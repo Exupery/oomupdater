@@ -134,13 +134,15 @@ object OptionDB {
     val vals = ListBuffer.empty[Any]
     val cols = new StringBuilder("")
     val updateStr = new StringBuilder("")
-    option.getMappedFields.foreach { t2	=>
+    val fields = option.fieldMap
+    fields.foreach { t2	=>
       vals += t2._2
       cols.append(","+fixToDB(t2._1))
       updateStr.append(","+fixToDB(t2._1)+"=?")
     }
     new OptionDB(vals.toList, cols.toString, updateStr.toString)
   }
+  
 }
 
 object FIX2DB extends Fields {
