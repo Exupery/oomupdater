@@ -9,14 +9,12 @@ object QuoteParser extends Fields with safeCast {
   private lazy val dbh = DBHandler
   private lazy val log: Logger = LoggerFactory.getLogger(this.getClass)
   
-  def parse(msg: String) {
-    msg match {
-      case m if msg.startsWith("G") => log.info("Successfully logged into quote server '{}'", mapFields(m).get(QUOTE_SERVER).getOrElse(""))    	
-      case m if msg.startsWith("D") => log.info("Login denied: {}", mapFields(m).get(LOGIN_REASON).getOrElse("Reason unknown"))
-      case m if msg.startsWith("1") => parseLevelOne(m)
-      case m if msg.startsWith("4") => parseOptionChain(m)
-      case _ => None 
-    }
+  def parse(msg: String): Unit = msg match {
+    case m if msg.startsWith("G") => log.info("Successfully logged into quote server '{}'", mapFields(m).get(QUOTE_SERVER).getOrElse(""))    	
+    case m if msg.startsWith("D") => log.info("Login denied: {}", mapFields(m).get(LOGIN_REASON).getOrElse("Reason unknown"))
+    case m if msg.startsWith("1") => parseLevelOne(m)
+    case m if msg.startsWith("4") => parseOptionChain(m)
+    case _ => None 
   }
   
   private def parseLevelOne(msg: String) {
