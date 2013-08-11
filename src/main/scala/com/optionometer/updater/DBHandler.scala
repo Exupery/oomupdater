@@ -122,44 +122,44 @@ object DBHandler {
     DriverManager.getConnection(dbURL)
   }
   
-}
 
-case class OptionDB(vals: List[Any], cols: String, updateStr: String)
 
-object OptionDB {
+  case class OptionDB(vals: List[Any], cols: String, updateStr: String)
+
+  object OptionDB {
   
-  val fixToDB = FIX2DB.mappings
+    val fixToDB = FIX2DB.mappings
   
-  def apply(option: OptionInfo): OptionDB = {
-    val vals = ListBuffer.empty[Any]
-    val cols = new StringBuilder("")
-    val updateStr = new StringBuilder("")
-    val fields = option.fieldMap
-    fields.foreach { t2	=>
-      vals += t2._2
-      cols.append(","+fixToDB(t2._1))
-      updateStr.append(","+fixToDB(t2._1)+"=?")
+    def apply(option: OptionInfo): OptionDB = {
+      val vals = ListBuffer.empty[Any]
+      val cols = new StringBuilder("")
+      val updateStr = new StringBuilder("")
+      val fields = option.fieldMap
+      fields.foreach { t2	=>
+        vals += t2._2
+        cols.append(","+fixToDB(t2._1))
+        updateStr.append(","+fixToDB(t2._1)+"=?")
+      }
+      new OptionDB(vals.toList, cols.toString, updateStr.toString)
     }
-    new OptionDB(vals.toList, cols.toString, updateStr.toString)
   }
-  
-}
 
-object FIX2DB extends Fields {
+  object FIX2DB extends Fields {
   
-  val mappings: Map[Int, String] = {
-    Map(BID->"bid",
-        ASK->"ask",
-        STRIKE_PRICE->"strike",
-        VOLUME->"volume",
-        OPEN_INTEREST->"open_interest",
-        UNDERLIER->"underlier",
-        PUT_CALL->"call_or_put",
-        EXP_YEAR->"exp_year",
-        EXP_MONTH->"exp_month",
-        EXP_DAY->"exp_day",
-        EXP_UNIX->"exp_unixtime"
-    )
+    val mappings: Map[Int, String] = {
+      Map(BID->"bid",
+		  ASK->"ask",
+		  STRIKE_PRICE->"strike",
+		  VOLUME->"volume",
+		  OPEN_INTEREST->"open_interest",
+		  UNDERLIER->"underlier",
+		  PUT_CALL->"call_or_put",
+		  EXP_YEAR->"exp_year",
+		  EXP_MONTH->"exp_month",
+		  EXP_DAY->"exp_day",
+		  EXP_UNIX->"exp_unixtime"
+	  )
+    }
+  
   }
-  
 }
