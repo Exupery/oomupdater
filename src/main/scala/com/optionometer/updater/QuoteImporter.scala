@@ -43,7 +43,7 @@ object QuoteImporter {
     val symsToUpdate = notUpdated(symbols, beginTime)
     if (symsToUpdate.size == 0) {
       log.info("Update Complete")
-    } else if (updateAttempts < 5) {
+    } else if (updateAttempts < 10) {
       log.info("{} symbols failed to update, attempting again in one minute...", symsToUpdate.size)
       Thread.sleep(60000)
       begin(symsToUpdate)
