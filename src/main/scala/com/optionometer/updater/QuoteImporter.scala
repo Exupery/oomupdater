@@ -39,19 +39,23 @@ object QuoteImporter {
     out.close()
     log.info("Connection Closed!")
     
-    val symsUpdated: Set[String] = updatedUnderliers(beginTime)
-    if (symsUpdated.size == symbols.size) {
+    val symsToUpdate = notUpdated(symbols, beginTime)
+    if (symsToUpdate.size == 0) {
       log.info("Update Complete")
     } else {
-      val symsNotUpdated: Set[String] = for (sym <- symbols; if !symsUpdated.contains(sym)) yield sym
-      log.info("{} symbols failed to update, attempting again...", symsNotUpdated.size)
-      begin(symsNotUpdated)
+      log.info("{} symbols failed to update, attempting again...", symsToUpdate.size)
+      begin(symsToUpdate)
     }
   }
   
-  private def updatedUnderliers(since: Long): Set[String] = {
-//    return DBHandler.updatedStockCount >= target
-    return Set()
+  private def notUpdated(symbols: Set[String], since: Long): Set[String] = {
+    symbols.foldLeft(Set.empty[String]) { case (s, sym) =>
+      if (DBHandler.updatedOptionCount(since, Some(sym)) <= 0) {
+        s.union(Set(sym))
+      } else {
+        s
+      }
+    }
   }
   
   private def logIn() {
@@ -166,8 +170,10 @@ object QuoteImporter {
       DBHandler.printCounts
       val newCount = DBHandler.updatedOptionCount(since)
       println(lastCount != newCount, lastCount, newCount)
-      Thread.sleep(60000)
-      checkTotal(newCount)
+      if (lastCount != newCount) {
+    	Thread.sleep(60000)
+      	checkTotal(newCount)
+      }
     }
     
     def run() {
