@@ -10,6 +10,7 @@ import org.slf4j.{Logger, LoggerFactory}
 
 object QuoteImporter {
   
+  private var updateAttempts = 0
   private val username = sys.env("FIX_USERNAME")
   private val password = sys.env("FIX_PASSWORD")
   private val host = sys.env("FIX_IP")
@@ -21,6 +22,7 @@ object QuoteImporter {
   private lazy val log: Logger = LoggerFactory.getLogger(this.getClass)
   
   def begin(symbols: Set[String]) {
+    updateAttempts += 1
     val beginTime = System.currentTimeMillis / 1000L
     val updateCdl = new CountDownLatch(symbols.size)
     
@@ -42,9 +44,12 @@ object QuoteImporter {
     val symsToUpdate = notUpdated(symbols, beginTime)
     if (symsToUpdate.size == 0) {
       log.info("Update Complete")
-    } else {
-      log.info("{} symbols failed to update, attempting again...", symsToUpdate.size)
+    } else if (updateAttempts < 5) {
+      log.info("{} symbols failed to update, attempting again in one minute...", symsToUpdate.size)
+      Thread.sleep(60000)
       begin(symsToUpdate)
+    } else {
+      log.info("No more update attempts remaining, {} symbols failed to update", symsToUpdate.size)
     }
   }
   
