@@ -20,7 +20,7 @@ class OptionInfo private (timestamp: Long, fields: Map[Int, String]) extends Fie
   private def nonMappedFields: Map[Int, Any] = {
     val month = fields.getOrElse(EXP_MONTH, "0")
     val year = fields.getOrElse(EXP_YEAR, "0")
-    val pattern = "-\\d{4}(\\d\\d)[CP]\\d"
+    val pattern = ".*-\\d{4}(\\d{2})[CP]\\d.*"
     val day = {
       if (sym.matches(pattern)) {
         val m = pattern.r.findAllIn(sym).matchData.map(m => m.group(1))
