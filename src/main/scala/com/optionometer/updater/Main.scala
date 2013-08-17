@@ -13,7 +13,7 @@ object Main extends App {
     val symbols = getComponents()
     QuoteImporter.begin(symbols)
     log.info("*** Exiting Quote Updater ***")
-    exit()
+    sys.exit()
   }
   
   def getComponents(): Set[String] = {
