@@ -10,10 +10,20 @@ object Main extends App {
   private lazy val log: Logger = LoggerFactory.getLogger(this.getClass)
 
   override def main(args: Array[String]): Unit = {
+    val start = System.currentTimeMillis / 1000
+    log.info("******************************************")
     log.info("*** Optionometer Quote Updater Started ***")
+    log.info("******************************************")
     val symbols = getComponents()
     QuoteImporter.begin(symbols)
-    log.info("*** Exiting Quote Updater ***")
+
+    val dur = (System.currentTimeMillis / 1000) - start
+    if (dur < 180) {
+      log.info("Exiting after {} seconds", dur)
+    } else {
+      log.info("Exiting after {} minutes", dur/60)
+    }
+    
     sys.exit()
   }
   
