@@ -95,7 +95,7 @@ object QuoteImporter {
       val updated = DBHandler.updatedOptionCount(since)
       val rate = updated / elapsed
       val each = elapsed.toDouble / updated * 1000
-      log.info("Option update rate: {} contracts per second ({}ms per contract)", rate, each.toInt)
+      log.info("Option update rate averaging {} contracts per minute ({}ms per contract)", rate*60, each.toInt)
       val newCount = DBHandler.updatedOptionCount(since)
       Thread.sleep(5 * 60 * 1000)
       checkTotal(newCount)
