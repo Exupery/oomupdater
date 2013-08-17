@@ -6,6 +6,7 @@ import java.net.{ServerSocket, Socket, SocketException}
 import java.security.MessageDigest
 import java.util.concurrent._
 import scala.io.Source
+import scala.util.Properties
 import org.slf4j.{Logger, LoggerFactory}
 
 object QuoteImporter {
@@ -42,7 +43,7 @@ object QuoteImporter {
     val symsToUpdate = notUpdated(symbols, beginTime)
     if (symsToUpdate.size == 0) {
       log.info("Update Complete")
-    } else if (updateAttempts < 10) {
+    } else if (updateAttempts < Properties.envOrElse("MAX_ATTEMPTS", "10").toInt) {
       log.info("{} symbols failed to update, attempting again in one minute...", symsToUpdate.size)
       Thread.sleep(60000)
       begin(symsToUpdate)
