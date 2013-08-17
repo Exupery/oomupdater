@@ -20,7 +20,7 @@ object QuoteImporter {
   
   def begin(symbols: Set[String]) {
     updateAttempts += 1
-    val beginTime = System.currentTimeMillis / 1000L
+    val beginTime = System.currentTimeMillis / 1000
     val updateCdl = new CountDownLatch(symbols.size)
     
     val socket = new Socket(host, port)
@@ -29,13 +29,12 @@ object QuoteImporter {
     logIn(sender)
     
     Executors.newScheduledThreadPool(1).schedule(new Subscriber(symbols, updateCdl, sender), 1, TimeUnit.SECONDS)
-    Executors.newScheduledThreadPool(1).schedule(new CheckTotalCount(System.currentTimeMillis/1000L), 30, TimeUnit.SECONDS)
+    Executors.newScheduledThreadPool(1).schedule(new CheckUpdateRate(System.currentTimeMillis / 1000), 30, TimeUnit.SECONDS)
     
     log.info("Updating Quotes...")
     Executors.newSingleThreadExecutor.execute(new Listener(socket))
     
     updateCdl.await()
-    log.debug("**** DONE WAITING ****")	//DELME
     
     socket.close()
     log.info("Connection Closed!")
@@ -88,23 +87,21 @@ object QuoteImporter {
     }
   }
   
-  //DELME: temp class for rotation debugging
-  class CheckTotalCount(since: Long, initCount: Int=0) extends Runnable {
+  class CheckUpdateRate(since: Long, initCount: Int=0) extends Runnable {
     
     def checkTotal(lastCount: Int) {
-      log.debug(System.currentTimeMillis.toString)
-      DBHandler.printCounts
+      val elapsed = (System.currentTimeMillis / 1000) - since 
+      val updated = DBHandler.updatedOptionCount(since)
+      val rate = updated / elapsed
+      val each = elapsed.toDouble / updated * 1000
+      log.info("Option update rate: {} contracts per second ({}ms per contract)", rate, each.toInt)
       val newCount = DBHandler.updatedOptionCount(since)
-      println(lastCount != newCount, lastCount, newCount)
-      if (lastCount != newCount) {
-    	Thread.sleep(60000)
-      	checkTotal(newCount)
-      }
+      Thread.sleep(5 * 60 * 1000)
+      checkTotal(newCount)
     }
     
     def run() {
       checkTotal(initCount)
     }
   }
-  //DELME
 }

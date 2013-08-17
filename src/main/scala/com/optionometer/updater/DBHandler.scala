@@ -7,26 +7,11 @@ import org.slf4j.{Logger, LoggerFactory}
 object DBHandler {
   
   private val dbURL = "jdbc:" + sys.env("DB_URL")
-		
   private lazy val log: Logger = LoggerFactory.getLogger(this.getClass)
   
   ClassLoader.getSystemClassLoader().loadClass("com.mysql.jdbc.Driver")
   
-  //DELME: temp method to print db counts for subscription debugging
-  def printCounts() {
-    val db = DriverManager.getConnection(dbURL)
-    val sps = db.prepareStatement("select count(*) as cnt from stocks")
-    val srs = sps.executeQuery()
-    while (srs.next()) (println("stocks:\t"+srs.getObject(1)))
-    val ops = db.prepareStatement("select count(distinct underlier) as unds, count(*) as cnt from options")
-    val ors = ops.executeQuery()
-    while (ors.next()) (println("unds:\t"+ors.getObject(1)+"\topts\t"+ors.getObject(2)))
-    db.close()
-  }
-  //DELME
-  
   def updatedOptionCount(since: Long, und: Option[String]=None): Int = {
-    val start = System.currentTimeMillis	//DELME
     val db = DriverManager.getConnection(dbURL)
     val updated = try {
       val stmt = new StringBuilder("SELECT COUNT(*) AS cnt FROM options WHERE dbupdate_time > ?")
@@ -46,8 +31,6 @@ object DBHandler {
     } finally {
       db.close()
     }
-    val dur = System.currentTimeMillis - start	//DELME
-//    println("dur: "+dur+"ms")					//DELME
     return updated
   }
   
