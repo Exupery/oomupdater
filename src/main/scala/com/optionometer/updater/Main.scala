@@ -1,6 +1,7 @@
 package com.optionometer.updater
 
 import java.io.File
+import java.util.concurrent.{Executors, TimeUnit}
 import scala.io.Source
 import scala.util.Properties
 import org.slf4j.{Logger, LoggerFactory}
@@ -15,6 +16,7 @@ object Main extends App {
     log.info("*** Optionometer Quote Updater Started ***")
     log.info("******************************************")
     val symbols = getComponents()
+    Executors.newScheduledThreadPool(1).schedule(new CheckUpdateRate(System.currentTimeMillis / 1000), 60, TimeUnit.SECONDS)
     QuoteImporter.begin(symbols)
 
     val dur = (System.currentTimeMillis / 1000) - start
@@ -34,5 +36,23 @@ object Main extends App {
     })
     return (srcStrings.lines.filterNot(_.isEmpty).toList.map(sym => sym)).toSet
   }
+  
+  class CheckUpdateRate(since: Long, initCount: Int=0) extends Runnable {
+    
+    def checkTotal(lastCount: Int) {
+      val elapsed = (System.currentTimeMillis / 1000) - since 
+      val updated = DBHandler.updatedOptionCount(since)
+      val perMinute = updated.toDouble / elapsed * 60
+      val perContract = elapsed.toDouble / updated * 1000
+      log.info("Option update rate averaging {} contracts per minute ({}ms per contract)", perMinute.toInt, perContract.toInt)
+      val newCount = DBHandler.updatedOptionCount(since)
+      Thread.sleep(5 * 60 * 1000)
+      checkTotal(newCount)
+    }
+    
+    def run() {
+      checkTotal(initCount)
+    }
+  }  
 
 }

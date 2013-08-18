@@ -30,7 +30,6 @@ object QuoteImporter {
     logIn(sender)
     
     Executors.newScheduledThreadPool(1).schedule(new Subscriber(symbols, updateCdl, sender), 1, TimeUnit.SECONDS)
-    Executors.newScheduledThreadPool(1).schedule(new CheckUpdateRate(System.currentTimeMillis / 1000), 30, TimeUnit.SECONDS)
     
     log.info("Updating Quotes...")
     Executors.newSingleThreadExecutor.execute(new Listener(socket))
@@ -88,21 +87,4 @@ object QuoteImporter {
     }
   }
   
-  class CheckUpdateRate(since: Long, initCount: Int=0) extends Runnable {
-    
-    def checkTotal(lastCount: Int) {
-      val elapsed = (System.currentTimeMillis / 1000) - since 
-      val updated = DBHandler.updatedOptionCount(since)
-      val perMinute = updated.toDouble / elapsed * 60
-      val perContract = elapsed.toDouble / updated * 1000
-      log.info("Option update rate averaging {} contracts per minute ({}ms per contract)", perMinute.toInt, perContract.toInt)
-      val newCount = DBHandler.updatedOptionCount(since)
-      Thread.sleep(5 * 60 * 1000)
-      checkTotal(newCount)
-    }
-    
-    def run() {
-      checkTotal(initCount)
-    }
-  }
 }
