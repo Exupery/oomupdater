@@ -47,7 +47,7 @@ object QuoteImporter {
       Thread.sleep(60000)
       begin(symsToUpdate)
     } else {
-      log.info("No more update attempts remaining, {} symbols failed to update", symsToUpdate.size)
+      log.info("No more update attempts remaining, {} symbols failed to update: {}", symsToUpdate.size, symsToUpdate)
     }
   }
   
