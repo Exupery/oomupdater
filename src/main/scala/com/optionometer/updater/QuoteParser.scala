@@ -51,7 +51,9 @@ object QuoteParser extends Fields with safeCast {
   private def isNotWeekly(option: OptionInfo): Boolean = {
     val opt = option.fieldMap
     val cal = new GregorianCalendar(toInt(opt(EXP_YEAR)), toInt(opt(EXP_MONTH))-1, toInt(opt(EXP_DAY)))
-    return cal.get(Calendar.DAY_OF_WEEK) == Calendar.SATURDAY
+    val expiresOnSaturday = cal.get(Calendar.DAY_OF_WEEK) == Calendar.SATURDAY
+    val isWeeklyOfThirdWeek = option.sym.matches(".*[A-Z]+-7.*")
+    return expiresOnSaturday && !isWeeklyOfThirdWeek
   }
   
   
