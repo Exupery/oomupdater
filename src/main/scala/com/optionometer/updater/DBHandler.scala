@@ -9,7 +9,7 @@ object DBHandler {
   private val dbURL = "jdbc:" + sys.env("DB_URL")
   private lazy val log: Logger = LoggerFactory.getLogger(this.getClass)
   
-  ClassLoader.getSystemClassLoader().loadClass("com.mysql.jdbc.Driver")
+  ClassLoader.getSystemClassLoader().loadClass("org.postgresql.Driver")
   
   def updatedOptionCount(since: Long, und: Option[String]=None): Int = {
     val db = DriverManager.getConnection(dbURL)
@@ -34,18 +34,33 @@ object DBHandler {
     return updated
   }
   
+  @throws(classOf[SQLException])
+  private def insertStock(stock: StockInfo, db: Connection): Boolean = {
+    val insert = "INSERT INTO stocks (symbol, last_trade, last_trade_time, dbupdate_time) SELECT ?,?,?,EXTRACT(EPOCH FROM NOW()) WHERE NOT EXISTS (SELECT 1 FROM stocks WHERE symbol=?)"
+    val ps = db.prepareStatement(insert)
+    val last = toJavaBigDecimal(stock.last)
+    ps.setString(1, stock.sym)
+    ps.setBigDecimal(2, last)
+    ps.setLong(3, stock.asOf)
+    ps.setString(4, stock.sym)
+    val insertedRows = ps.executeUpdate()
+    return insertedRows > 0
+  }
+  
   def updateStock(stock: StockInfo) {
     val db = DriverManager.getConnection(dbURL)
     try {
-      val update = "INSERT INTO stocks (symbol, last_trade, last_trade_time, dbupdate_time) VALUES(?, ?, ?, UNIX_TIMESTAMP(NOW())) ON DUPLICATE KEY UPDATE last_trade=?, last_trade_time=?, dbupdate_time=UNIX_TIMESTAMP(NOW())"
+      val update = "UPDATE stocks SET symbol=?, last_trade=?, last_trade_time=?, dbupdate_time=EXTRACT(EPOCH FROM NOW()) WHERE symbol=?"
       val ps = db.prepareStatement(update)
       val last = toJavaBigDecimal(stock.last)
       ps.setString(1, stock.sym)
       ps.setBigDecimal(2, last)
       ps.setLong(3, stock.asOf)
-      ps.setBigDecimal(4, last)
-      ps.setLong(5, stock.asOf)
+      ps.setString(4, stock.sym)
       val updatedRows = ps.executeUpdate()
+      if (updatedRows <= 0) {
+        insertStock(stock, db)
+      }
     } catch {
       case e:SQLException => log.error("Unable to execute update: {}", e.getMessage)
     } finally {
@@ -53,42 +68,52 @@ object DBHandler {
     }
   }
   
+  @throws(classOf[SQLException])
+  private def insertOption(option: OptionInfo, opt: OptionDB, db: Connection): Boolean = {
+    val qs = ",?" * opt.vals.size
+    val insert = "INSERT INTO options (symbol, last_tick_time"+opt.cols+", dbupdate_time) SELECT ?,?"+qs+", EXTRACT(EPOCH FROM NOW()) WHERE NOT EXISTS (SELECT 1 FROM options WHERE symbol=?)"
+    val ps = db.prepareStatement(insert)
+    ps.setString(1, option.sym)
+    ps.setLong(2, option.asOf)
+    ps.setString(opt.vals.size+3, option.sym)
+    var index = 3
+    opt.vals.foreach { v =>
+      v match {
+        case int: Int => ps.setInt(index, int)
+        case bgd: BigDecimal => ps.setBigDecimal(index, toJavaBigDecimal(bgd))
+        case lng: Long => ps.setLong(index, lng)
+        case str: String => ps.setString(index, str)
+        case _ => log.error("Unexpected data type: {}", v.getClass)
+      }
+      index += 1
+    }    
+    val insertedRows = ps.executeUpdate()
+    return insertedRows > 0
+  }
+  
   def updateOption(option: OptionInfo) {
     val opt = OptionDB(option)
-    val size = opt.vals.size
-    val onUpdate = "dbupdate_time=UNIX_TIMESTAMP(NOW()), last_tick_time=?"+opt.updateStr
-    val qs = ",?" * size
     val db = DriverManager.getConnection(dbURL)
     try {
-      val update = "INSERT INTO options (symbol, last_tick_time"+opt.cols+", dbupdate_time) VALUES(?,?"+qs+", UNIX_TIMESTAMP(NOW())) ON DUPLICATE KEY UPDATE "+onUpdate
+      val update = "UPDATE options SET dbupdate_time=EXTRACT(EPOCH FROM NOW()), last_tick_time=?"+opt.updateStr+" WHERE symbol=?"
       val ps = db.prepareStatement(update)
-      ps.setString(1, option.sym)
-      ps.setLong(2, option.asOf)
-      ps.setLong(size+3, option.asOf)
-      var index = 3
+      ps.setLong(1, option.asOf)
+      ps.setString(opt.vals.size+2, option.sym)
+      var index = 2
       opt.vals.foreach { v =>
         v match {
-          case int: Int => {
-            ps.setInt(index, int)
-            ps.setInt(index+size+1, int)
-          }
-          case bgd: BigDecimal => {
-            ps.setBigDecimal(index, toJavaBigDecimal(bgd))
-            ps.setBigDecimal(index+size+1, toJavaBigDecimal(bgd))
-          }
-          case lng: Long => {
-            ps.setLong(index, lng)
-            ps.setLong(index+size+1, lng)
-          }
-          case str: String => {
-            ps.setString(index, str)
-            ps.setString(index+size+1, str)
-          }
+          case int: Int => ps.setInt(index, int)
+          case bgd: BigDecimal => ps.setBigDecimal(index, toJavaBigDecimal(bgd))
+          case lng: Long => ps.setLong(index, lng)
+          case str: String => ps.setString(index, str)
           case _ => log.error("Unexpected data type: {}", v.getClass)
         }
         index += 1
       }
       val updatedRows = ps.executeUpdate()
+      if (updatedRows <= 0) {
+        insertOption(option, opt, db)
+      }
     } catch {
       case e:SQLException => log.error("Unable to execute update: {}", e.getMessage)
     } finally {
@@ -118,6 +143,7 @@ object DBHandler {
       val cols = new StringBuilder("")
       val updateStr = new StringBuilder("")
       val fields = option.fieldMap
+      
       fields.foreach { t2	=>
         vals += t2._2
         cols.append(","+fixToDB(t2._1))

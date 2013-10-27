@@ -10,5 +10,5 @@ scalacOptions ++= Seq("-unchecked", "-deprecation")
 
 libraryDependencies ++= Seq(
 	"ch.qos.logback" % "logback-classic" % "1.0.13",
-	"mysql" % "mysql-connector-java" % "5.1.6"
+	"postgresql" % "postgresql" % "9.1-901.jdbc4"
 )
