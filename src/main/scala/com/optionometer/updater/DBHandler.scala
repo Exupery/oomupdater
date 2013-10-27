@@ -9,8 +9,6 @@ object DBHandler {
   private val dbURL = "jdbc:" + sys.env("DB_URL")
   private lazy val log: Logger = LoggerFactory.getLogger(this.getClass)
   
-  ClassLoader.getSystemClassLoader().loadClass("org.postgresql.Driver")
-  
   def updatedOptionCount(since: Long, und: Option[String]=None): Int = {
     val db = DriverManager.getConnection(dbURL)
     val updated = try {
